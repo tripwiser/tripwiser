@@ -1,10 +1,13 @@
 const axios = require('axios');
 
-// The default URL for a local Ollama instance
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434/api/generate';
+const OPENROUTER_API_URL = process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'mistral-small-3.2-24b';
+const OPENROUTER_REFERER = process.env.OPENROUTER_REFERER || '';
+const OPENROUTER_TITLE = process.env.OPENROUTER_TITLE || '';
 
 /**
- * Generates a packing list using Ollama AI.
+ * Generates a packing list using OpenRouter AI.
  *
  * @param {object} tripDetails - Details of the trip from the Trip model.
  * @param {object} weatherData - The weather forecast data.
@@ -42,26 +45,83 @@ const generatePackingList = async (tripDetails, weatherData) => {
   `;
 
   try {
-    const response = await axios.post(OLLAMA_API_URL, {
-      model: "llama2", // Or whichever model you are using, e.g., "mistral"
-      prompt: prompt,
-      stream: false, // We want the full response at once
-      format: "json" // Specify that we want a JSON output
-    });
+    const headers = {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+    };
+    if (OPENROUTER_REFERER) headers['HTTP-Referer'] = OPENROUTER_REFERER;
+    if (OPENROUTER_TITLE) headers['X-Title'] = OPENROUTER_TITLE;
 
-    // The response from Ollama with format:"json" should be a JSON string in the 'response' field.
-    return JSON.parse(response.data.response);
+    const response = await axios.post(
+      OPENROUTER_API_URL,
+      JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      }),
+      { headers }
+    );
+
+    // The response from OpenRouter should be in response.data.choices[0].message.content
+    return JSON.parse(response.data.choices[0].message.content);
 
   } catch (error) {
-    console.error('Error communicating with Ollama:', error.message);
+    console.error('Error communicating with OpenRouter (packing list):', error.message);
     if (error.response) {
-      console.error('Ollama response error:', error.response.data);
+      console.error('OpenRouter response error:', error.response.data);
     }
-    // You might want to return a default or fallback packing list here.
     throw new Error('Failed to generate packing list from AI service.');
   }
 };
 
+/**
+ * Generates a travel tip using OpenRouter AI based on context.
+ * @param {object} context - { destination, packing, weather, culture, safety }
+ * @returns {Promise<string>} - The generated travel tip.
+ */
+const generateTravelTip = async (context) => {
+  const { destination, packing, weather, culture, safety } = context;
+  const prompt = `You are a travel expert. Give a single, concise, and practical travel tip for a trip to ${destination || 'a random place'}.
+
+Consider these aspects:
+- Packing: ${packing || 'general'}
+- Weather: ${weather || 'unknown'}
+- Culture: ${culture || 'general'}
+- Safety: ${safety || 'general'}
+
+Respond with only the tip, no extra text.`;
+
+  try {
+    const headers = {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+    };
+    if (OPENROUTER_REFERER) headers['HTTP-Referer'] = OPENROUTER_REFERER;
+    if (OPENROUTER_TITLE) headers['X-Title'] = OPENROUTER_TITLE;
+
+    const response = await axios.post(
+      OPENROUTER_API_URL,
+      JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      }),
+      { headers }
+    );
+    // The response from OpenRouter should be in response.data.choices[0].message.content
+    return response.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Error communicating with OpenRouter (travel tip):', error.message);
+    if (error.response) {
+      console.error('OpenRouter response error:', error.response.data);
+    }
+    return 'Stay safe and enjoy your travels!';
+  }
+};
+
 module.exports = {
-  generatePackingList
+  generatePackingList,
+  generateTravelTip,
 }; 

@@ -9,7 +9,7 @@ const ollamaService = require('../services/ollamaService');
 const generatePackingList = async (req, res) => {
   try {
     const { destination, startDate, endDate, tripType, specialRequests } = req.body;
-    const userId = req.user.id; // Assuming auth middleware adds user to req
+    const userId = req.user._id; // Assuming auth middleware adds user to req
 
     // 1. Create and save the new trip
     const newTrip = new Trip({
@@ -37,7 +37,8 @@ const generatePackingList = async (req, res) => {
             itemName: item.itemName,
             category: category,
             quantity: item.quantity,
-            notes: item.notes
+            notes: item.notes,
+            packed: false
           });
         });
       }
@@ -46,17 +47,33 @@ const generatePackingList = async (req, res) => {
     // 5. Create and save the new packing list
     const newPackingList = new PackingList({
       trip: newTrip._id,
-      items: packingListItems,
+      items: packingListItems
     });
     await newPackingList.save();
 
-    res.status(201).json(newPackingList);
+    res.status(201).json({ trip: newTrip, packingList: newPackingList });
   } catch (error) {
-    console.error('Error generating packing list:', error);
-    res.status(500).json({ message: 'Failed to generate packing list', error: error.message });
+    console.error('Generate packing list error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Generate a travel tip using Ollama based on context.
+ */
+const generateTravelTip = async (req, res) => {
+  try {
+    console.log('generateTravelTip endpoint hit. Body:', req.body);
+    const { destination, packing, weather, culture, safety } = req.body;
+    const tip = await ollamaService.generateTravelTip({ destination, packing, weather, culture, safety });
+    res.status(200).json({ tip });
+  } catch (error) {
+    console.error('Error generating travel tip:', error);
+    res.status(500).json({ message: 'Failed to generate travel tip', error: error.message });
   }
 };
 
 module.exports = {
   generatePackingList,
+  generateTravelTip,
 };
