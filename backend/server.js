@@ -28,6 +28,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/packing', packingRoutes);
 
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
