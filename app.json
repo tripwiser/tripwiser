@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "vibecode",
+    "slug": "vibecode",
+    "scheme": "vibecode",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vibecode.tripkit"
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "package": "com.vibecode.tripkit"
+    },
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "5baed529-01a3-44fd-98ad-f9552550392a"
+      }
+    }
+  }
+}
