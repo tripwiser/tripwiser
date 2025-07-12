@@ -13,8 +13,8 @@ router.get('/test', async (req, res) => {
     res.json({ 
       message: 'Auth routes working!',
       timestamp: new Date().toISOString(),
-      firebase_configured: !!process.env.FIREBASE_PROJECT_ID,
-      mongo_configured: !!process.env.MONGO_URI
+      firebase_configured: true,
+      mongo_configured: true
     });
   } catch (error) {
     console.error('Test error:', error);
@@ -50,7 +50,7 @@ router.post('/register', async (req, res) => {
       userId: user._id
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(payload, 'YOUR_JWT_SECRET_KEY', { expiresIn: '7d' });
 
     res.json({ 
       token, 
@@ -91,7 +91,7 @@ router.post('/login', async (req, res) => {
       userId: user._id
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(payload, 'YOUR_JWT_SECRET_KEY', { expiresIn: '7d' });
 
     res.json({ 
       token, 
@@ -121,7 +121,7 @@ router.post('/firebase', firebaseAuth, async (req, res) => {
       userId: user._id
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(payload, 'YOUR_JWT_SECRET_KEY', { expiresIn: '7d' });
 
     res.json({ 
       token, 

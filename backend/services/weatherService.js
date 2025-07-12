@@ -1,40 +1,67 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const axios = require('axios');
+const TOMORROW_API_KEY = process.env.WEATHER_API_KEY;
+const OPENCAGE_API_KEY = process.env.OPENCAGE_API_KEY;
+const TOMORROW_API_URL = 'https://api.tomorrow.io/v4/weather/forecast';
+const OPENCAGE_API_URL = 'https://api.opencagedata.com/geocode/v1/json';
 
-// TODO: User needs to provide an API key for a weather service
-const WEATHER_API_KEY = process.env.WEATHER_API_KEY || 'YOUR_API_KEY';
-const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/forecast';
+// Helper: Geocode city name to lat/lon
+async function geocodeCity(city) {
+  if (!OPENCAGE_API_KEY) throw new Error('No OpenCage API key set in OPENCAGE_API_KEY');
+  const response = await axios.get(OPENCAGE_API_URL, {
+    params: {
+      key: OPENCAGE_API_KEY,
+      q: city,
+      limit: 1
+    }
+  });
+  if (response.data.results.length === 0) throw new Error('Could not geocode city: ' + city);
+  const { lat, lng } = response.data.results[0].geometry;
+  return { lat, lon: lng };
+}
 
-/**
- * Fetches the weather forecast for a given destination.
- * @param {string} destination - The destination city.
- * @returns {Promise<object>} - The weather data.
- */
 const getWeather = async (destination) => {
+  if (!TOMORROW_API_KEY) {
+    throw new Error('No Tomorrow.io API key provided. Please set WEATHER_API_KEY in your .env file.');
+  }
+
+  let lat, lon;
+  if (typeof destination === 'string') {
+    // Geocode city name
+    ({ lat, lon } = await geocodeCity(destination));
+  } else if (destination.lat && destination.lon) {
+    lat = destination.lat;
+    lon = destination.lon;
+  } else {
+    throw new Error('Destination must be a city name or { lat, lon } object');
+  }
+
   try {
-    // For now, this is a placeholder. A real implementation would use the destination
-    // and dates to get a forecast. The API may need coordinates instead of a city name.
-    const response = await axios.get(WEATHER_API_URL, {
+    const response = await axios.get(TOMORROW_API_URL, {
       params: {
-        q: destination,
-        appid: WEATHER_API_KEY,
-        units: 'metric' // or 'imperial'
+        location: `${lat},${lon}`,
+        apikey: TOMORROW_API_KEY,
+        timesteps: '1d',
+        units: 'metric',
+        fields: 'temperature,weatherCode,precipitationType,precipitationProbability,windSpeed'
       }
     });
 
-    // This is a simplified forecast. We can process this further to give a summary.
-    return response.data;
+    const daily = response.data.timelines.daily[0];
+    const summary = `Weather: ${daily.values.weatherCode}, Temp: ${daily.values.temperature}°C, Precipitation: ${daily.values.precipitationProbability}%`;
+
+    return {
+      summary,
+      raw: daily.values
+    };
   } catch (error) {
-    console.error('Error fetching weather data:', error.message);
-    // In a real app, you might want to return a default/fallback value
-    // or handle the error more gracefully.
+    console.error('Error fetching weather data from Tomorrow.io:', error.message);
     if (error.response) {
       console.error('Error details:', error.response.data);
     }
-    // Return a mock response or throw error, for now we will return a mock.
-    return {
-        mock: true,
-        forecast: 'Sunny with a chance of clouds. Temp: 25°C'
-    };
+    throw error;
   }
 };
 

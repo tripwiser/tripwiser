@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 // Google OAuth callback
 exports.googleLogin = (req, res) => {
   const user = req.user;
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const token = jwt.sign({ userId: user._id }, 'YOUR_JWT_SECRET_KEY', { expiresIn: '1h' });
   res.json({ token });
 };
 
@@ -21,7 +21,7 @@ exports.localLogin = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id }, 'YOUR_JWT_SECRET_KEY', { expiresIn: '1h' });
     res.json({ token });
   } catch (error) {
     res.status(500).json({ message: 'Error logging in' });
@@ -40,7 +40,7 @@ exports.registerUser = async (req, res) => {
     const newUser = new User({ name, email, password: hashedPassword });
 
     await newUser.save();
-    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: newUser._id }, 'YOUR_JWT_SECRET_KEY', { expiresIn: '1h' });
 
     res.status(201).json({ token });
   } catch (error) {
