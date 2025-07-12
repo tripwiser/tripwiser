@@ -71,7 +71,7 @@ app.use(express.json({ limit: '10mb' })); // Increase limit for image uploads
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Connect to MongoDB (enabled for production)
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/trip_packer';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/trip_packer';
 
 // Connect to MongoDB if we're in production mode or if MONGODB_URI is provided
 if (process.env.NODE_ENV === 'production' || process.env.MONGODB_URI) {
