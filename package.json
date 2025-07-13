@@ -29,7 +29,7 @@
     "@react-navigation/native-stack": "^7.3.2",
     "@react-navigation/stack": "^7.1.1",
     "@shopify/flash-list": "1.7.6",
-    "@shopify/react-native-skia": "v2.0.0-next.4",
+    "@shopify/react-native-skia": "^2.1.1",
     "axios": "^1.10.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -113,7 +113,7 @@
     "tailwind-merge": "^3.2.0",
     "tailwindcss": "^3.4.17",
     "uuid": "^11.1.0",
-    "victory-native": "^41.16.2",
+    "victory-native": "^40.0.0",
     "zeego": "^3.0.6",
     "zustand": "^5.0.4"
   },
