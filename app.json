@@ -15,7 +15,10 @@
       "edgeToEdgeEnabled": true,
       "package": "com.vibecode.tripkit"
     },
-    "plugins": [],
+    "plugins": [
+      "expo-video",
+      "expo-web-browser"
+    ],
     "extra": {
       "eas": {
         "projectId": "5baed529-01a3-44fd-98ad-f9552550392a"
