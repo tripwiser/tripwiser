@@ -101,30 +101,40 @@ const HomeScreen = () => {
   const [topDestinations, setTopDestinations] = React.useState<any[]>([]);
   const [modalVisible, setModalVisible] = React.useState(false);
   const [selectedDestination, setSelectedDestination] = React.useState<any>(null);
+  const [hasError, setHasError] = React.useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
-      AsyncStorage.getItem('top5Destinations').then((data) => {
-        console.log('Raw data from AsyncStorage:', data);
-        if (data) {
-          try {
-            const parsed = JSON.parse(data);
-            console.log('Parsed topDestinations:', parsed);
-            // Validate and clean the data
-            const validatedDestinations = Array.isArray(parsed) ? parsed.map(dest => ({
-              ...dest // Use the backend object as-is, including imageUrl
-            })) : [];
-            console.log('Validated topDestinations:', validatedDestinations);
-            setTopDestinations(validatedDestinations);
-          } catch (error) {
-            console.log('Error parsing AsyncStorage data:', error);
+      try {
+        AsyncStorage.getItem('top5Destinations').then((data) => {
+          console.log('Raw data from AsyncStorage:', data);
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              console.log('Parsed topDestinations:', parsed);
+              // Validate and clean the data
+              const validatedDestinations = Array.isArray(parsed) ? parsed.map(dest => ({
+                ...dest // Use the backend object as-is, including imageUrl
+              })) : [];
+              console.log('Validated topDestinations:', validatedDestinations);
+              setTopDestinations(validatedDestinations);
+            } catch (error) {
+              console.log('Error parsing AsyncStorage data:', error);
+              setTopDestinations([]);
+            }
+          } else {
+            console.log('No data in AsyncStorage');
             setTopDestinations([]);
           }
-        } else {
-          console.log('No data in AsyncStorage');
+        }).catch((error) => {
+          console.log('Error reading from AsyncStorage:', error);
           setTopDestinations([]);
-        }
-      });
+        });
+      } catch (error) {
+        console.log('Error in useFocusEffect:', error);
+        setTopDestinations([]);
+        setHasError(true);
+      }
     }, [])
   );
 
@@ -161,6 +171,24 @@ const HomeScreen = () => {
     });
     return () => scrollX.removeListener(id);
   }, [scrollX]);
+
+  if (hasError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F7F7F7' }} edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
+            Something went wrong. Please restart the app.
+          </Text>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#4F46E5', padding: 15, borderRadius: 10 }}
+            onPress={() => setHasError(false)}
+          >
+            <Text style={{ color: 'white', fontWeight: '600' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F7F7F7' }} edges={['top', 'left', 'right']}>
