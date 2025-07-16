@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/userModel');
+const { summarizeTrip } = require('../controllers/userController');
 
 // @route   GET api/users/profile
 // @desc    Get user profile
@@ -42,5 +43,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+router.get('/trip/:tripId/summary', summarizeTrip);
 
 module.exports = router;

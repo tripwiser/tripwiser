@@ -36,19 +36,19 @@ app.use((req, res, next) => {
   const allowedOrigins = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
     : [
-        'http://localhost:3000',
-        'http://localhost:8081',
-        'http://localhost:19006',
-        'exp://localhost:19000',
-        'exp://26.219.207.197:19000',
-        'http://26.219.207.197:3000',
-        'http://26.219.207.197:8081',
+    'http://localhost:3000',
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'exp://localhost:19000',
+    'exp://26.219.207.197:19000',
+    'http://26.219.207.197:3000',
+    'http://26.219.207.197:8081',
         'http://26.219.207.197:19006',
         // Add your production domains here
         'https://your-production-domain.com',
         'https://tripwiser.app',
         'https://tripwiser.vercel.app'
-      ];
+  ];
   
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin) || !origin) {
@@ -70,25 +70,22 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' })); // Increase limit for image uploads
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Connect to MongoDB (enabled for production)
+// Connect to MongoDB
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/trip_packer';
 
-// Connect to MongoDB if we're in production mode or if MONGODB_URI is provided
-if (process.env.NODE_ENV === 'production' || process.env.MONGODB_URI) {
-  mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-  })
-    .then(() => console.log('MongoDB connected successfully...'))
-    .catch(err => {
-      console.error('MongoDB connection error:', err);
-      // Don't exit the process, just log the error
-    });
-} else {
-  console.log('MongoDB connection skipped for local development');
-}
+// Always attempt MongoDB connection (for both development and production)
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+  socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+})
+  .then(() => console.log('MongoDB connected successfully...'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    console.log('Make sure MongoDB is running locally or set MONGODB_URI environment variable');
+    // Don't exit the process, just log the error
+  });
 
 // API Routes
 app.use('/api/auth', authRoutes);

@@ -21,8 +21,8 @@ try {
     };
 
     firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+  credential: admin.credential.cert(serviceAccount)
+});
     
     console.log('Firebase Admin SDK initialized successfully');
   } else if (process.env.NODE_ENV === 'production') {
@@ -31,7 +31,7 @@ try {
     console.log('Firebase Admin SDK initialized with default credentials');
   } else {
     // For local development, use mock implementation
-    console.log('Firebase Admin SDK disabled for local development');
+console.log('Firebase Admin SDK disabled for local development');
     firebaseApp = null;
   }
 } catch (error) {
