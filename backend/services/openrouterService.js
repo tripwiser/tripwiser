@@ -3,6 +3,8 @@ const axios = require('axios');
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'mistral-small-3.2-24b';
+
 
 async function getOpenRouterSummary(prompt) {
   if (!OPENROUTER_API_KEY) throw new Error('OpenRouter API key not set');
@@ -10,7 +12,7 @@ async function getOpenRouterSummary(prompt) {
     const response = await axios.post(
       OPENROUTER_API_URL,
       {
-        model: 'gpt-3.5-turbo',
+        model: OPENROUTER_MODEL,
         messages: [
           { role: 'system', content: 'You are a helpful travel assistant.' },
           { role: 'user', content: prompt },
