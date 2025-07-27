@@ -187,6 +187,358 @@ export const packingTemplates: PackingTemplate[] = [
   },
 ];
 
+// Add 20 new themed templates as single-category PackingTemplate objects
+packingTemplates.push(
+  // 1. Ski Trip
+  {
+    category: 'Ski Trip',
+    items: [
+      { name: 'Thermal Base Layers', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Ski Jacket', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Ski Pants', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Fleece Sweater', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Wool Socks', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Neck Gaiter', essential: false, activities: [], climate: ['cold'] },
+      { name: 'Beanie', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Gloves/Mittens', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Ski/Snowboard', essential: true, activities: ['winter-sports'], climate: ['cold'] },
+      { name: 'Ski Poles', essential: true, activities: ['winter-sports'], climate: ['cold'] },
+      { name: 'Ski Boots', essential: true, activities: ['winter-sports'], climate: ['cold'] },
+      { name: 'Helmet', essential: true, activities: ['winter-sports'], climate: ['cold'] },
+      { name: 'Goggles', essential: true, activities: ['winter-sports'], climate: ['cold'] },
+      { name: 'Hand Warmers', essential: false, activities: [], climate: ['cold'] },
+      { name: 'Lift Pass', essential: true, activities: [], climate: [] },
+      { name: 'Sunscreen (high SPF)', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Lip Balm with SPF', essential: true, activities: [], climate: ['cold'] },
+      { name: 'Snacks', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 2. Desert Adventure
+  {
+    category: 'Desert Adventure',
+    items: [
+      { name: 'Lightweight Long-Sleeve Shirt', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Convertible Pants', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Wide-brim Hat', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Bandana/Scarf', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Sandals', essential: false, activities: [], climate: ['arid'] },
+      { name: 'Sturdy Hiking Boots', essential: true, activities: ['hiking'], climate: ['arid'] },
+      { name: 'Hydration Pack', essential: true, activities: ['hiking'], climate: ['arid'] },
+      { name: 'Electrolyte Tablets', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Sunscreen', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Sunglasses', essential: true, activities: [], climate: ['arid'] },
+      { name: 'Headlamp', essential: false, activities: [], climate: [] },
+      { name: 'First Aid Kit', essential: true, activities: [], climate: [] },
+      { name: 'Camera', essential: false, activities: ['photography'], climate: [] },
+      { name: 'Travel Insurance', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 3. Business Conference
+  {
+    category: 'Business Conference',
+    items: [
+      { name: 'Business Suits', essential: true, activities: ['business'], climate: [] },
+      { name: 'Dress Shirts/Blouses', essential: true, activities: ['business'], climate: [] },
+      { name: 'Dress Shoes', essential: true, activities: ['business'], climate: [] },
+      { name: 'Belt', essential: true, activities: ['business'], climate: [] },
+      { name: 'Professional Bag/Briefcase', essential: true, activities: ['business'], climate: [] },
+      { name: 'Laptop & Charger', essential: true, activities: ['business'], climate: [] },
+      { name: 'Phone & Charger', essential: true, activities: [], climate: [] },
+      { name: 'Portable Power Bank', essential: false, activities: [], climate: [] },
+      { name: 'USB Drive', essential: false, activities: [], climate: [] },
+      { name: 'Business Cards', essential: true, activities: ['business'], climate: [] },
+      { name: 'Conference Badge', essential: true, activities: ['business'], climate: [] },
+      { name: 'Notebook & Pen', essential: true, activities: ['business'], climate: [] },
+      { name: 'Travel-size Toiletries', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 4. Music Festival
+  {
+    category: 'Music Festival',
+    items: [
+      { name: 'Festival Outfits', essential: true, activities: [], climate: [] },
+      { name: 'Comfortable Shoes', essential: true, activities: [], climate: [] },
+      { name: 'Rain Poncho', essential: false, activities: [], climate: ['temperate'] },
+      { name: 'Hat/Cap', essential: true, activities: [], climate: [] },
+      { name: 'Sunglasses', essential: true, activities: [], climate: [] },
+      { name: 'Reusable Water Bottle', essential: true, activities: [], climate: [] },
+      { name: 'Portable Charger', essential: true, activities: [], climate: [] },
+      { name: 'Earplugs', essential: false, activities: [], climate: [] },
+      { name: 'Blanket', essential: false, activities: [], climate: [] },
+      { name: 'Small Backpack', essential: true, activities: [], climate: [] },
+      { name: 'Festival Tickets', essential: true, activities: [], climate: [] },
+      { name: 'ID/Passport', essential: true, activities: [], climate: [] },
+      { name: 'Cash/Card', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 5. Safari
+  {
+    category: 'Safari',
+    items: [
+      { name: 'Neutral-Colored Clothing', essential: true, activities: [], climate: [] },
+      { name: 'Long-Sleeve Shirt', essential: true, activities: [], climate: [] },
+      { name: 'Convertible Pants', essential: true, activities: [], climate: [] },
+      { name: 'Wide-brim Hat', essential: true, activities: [], climate: [] },
+      { name: 'Sturdy Boots', essential: true, activities: [], climate: [] },
+      { name: 'Binoculars', essential: true, activities: [], climate: [] },
+      { name: 'Camera', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Insect Repellent', essential: true, activities: [], climate: ['tropical'] },
+      { name: 'Sunscreen', essential: true, activities: [], climate: ['tropical'] },
+      { name: 'Daypack', essential: true, activities: [], climate: [] },
+      { name: 'Travel Insurance', essential: true, activities: [], climate: [] },
+      { name: 'Vaccination Certificate', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 6. Cruise Vacation
+  {
+    category: 'Cruise Vacation',
+    items: [
+      { name: 'Swimsuits', essential: true, activities: [], climate: ['tropical', 'mediterranean'] },
+      { name: 'Formal Wear', essential: true, activities: [], climate: [] },
+      { name: 'Casual Outfits', essential: true, activities: [], climate: [] },
+      { name: 'Sandals', essential: true, activities: [], climate: [] },
+      { name: 'Light Jacket', essential: false, activities: [], climate: ['temperate'] },
+      { name: 'Beach Bag', essential: true, activities: [], climate: [] },
+      { name: 'Snorkel Gear', essential: false, activities: ['beach'], climate: [] },
+      { name: 'Sunscreen', essential: true, activities: [], climate: ['tropical', 'mediterranean'] },
+      { name: 'Travel Adapter', essential: false, activities: [], climate: [] },
+      { name: 'Cruise Documents', essential: true, activities: [], climate: [] },
+      { name: 'ID/Passport', essential: true, activities: [], climate: [] },
+      { name: 'Motion Sickness Pills', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 7. Backpacking Europe
+  {
+    category: 'Backpacking Europe',
+    items: [
+      { name: 'Quick-dry Shirts', essential: true, activities: [], climate: [] },
+      { name: 'Convertible Pants/Shorts', essential: true, activities: [], climate: [] },
+      { name: 'Comfortable Walking Shoes', essential: true, activities: ['city-sightseeing'], climate: [] },
+      { name: 'Rain Jacket', essential: true, activities: [], climate: ['temperate'] },
+      { name: 'Flip-flops', essential: false, activities: [], climate: [] },
+      { name: 'Backpack', essential: true, activities: [], climate: [] },
+      { name: 'Packing Cubes', essential: false, activities: [], climate: [] },
+      { name: 'Travel Towel', essential: true, activities: [], climate: [] },
+      { name: 'Padlock', essential: true, activities: [], climate: [] },
+      { name: 'Universal Adapter', essential: true, activities: [], climate: [] },
+      { name: 'Eurail Pass', essential: false, activities: [], climate: [] },
+      { name: 'Travel Insurance', essential: true, activities: [], climate: [] },
+      { name: 'Student ID', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 8. Study Abroad Semester
+  {
+    category: 'Study Abroad Semester',
+    items: [
+      { name: 'Seasonal Clothing', essential: true, activities: [], climate: [] },
+      { name: 'Comfortable Shoes', essential: true, activities: [], climate: [] },
+      { name: 'Rain Gear', essential: false, activities: [], climate: ['temperate'] },
+      { name: 'Laptop', essential: true, activities: [], climate: [] },
+      { name: 'Notebooks', essential: true, activities: [], climate: [] },
+      { name: 'Pens & Stationery', essential: true, activities: [], climate: [] },
+      { name: 'Backpack', essential: true, activities: [], climate: [] },
+      { name: 'Passport & Visa', essential: true, activities: [], climate: [] },
+      { name: 'Health Insurance', essential: true, activities: [], climate: [] },
+      { name: 'Local SIM Card', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 9. Digital Nomad Remote Work
+  {
+    category: 'Digital Nomad Remote Work',
+    items: [
+      { name: 'Laptop', essential: true, activities: [], climate: [] },
+      { name: 'Portable WiFi Hotspot', essential: true, activities: [], climate: [] },
+      { name: 'Noise-cancelling Headphones', essential: true, activities: [], climate: [] },
+      { name: 'Universal Adapter', essential: true, activities: [], climate: [] },
+      { name: 'Power Bank', essential: true, activities: [], climate: [] },
+      { name: 'Notebook & Pens', essential: true, activities: [], climate: [] },
+      { name: 'Mouse & Keyboard', essential: false, activities: [], climate: [] },
+      { name: 'Laptop Stand', essential: false, activities: [], climate: [] },
+      { name: 'Travel Insurance', essential: true, activities: [], climate: [] },
+      { name: 'Backup Credit Card', essential: true, activities: [], climate: [] },
+      { name: 'SIM Card', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 10. Family Beach Holiday
+  {
+    category: 'Family Beach Holiday',
+    items: [
+      { name: 'Swimsuits', essential: true, activities: ['beach'], climate: ['tropical', 'mediterranean'] },
+      { name: 'Sun Hats', essential: true, activities: [], climate: [] },
+      { name: 'Cover-ups', essential: false, activities: [], climate: [] },
+      { name: 'Flip-flops', essential: true, activities: [], climate: [] },
+      { name: 'Floaties/Swim Vests', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Beach Toys', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Snacks', essential: true, activities: [], climate: [] },
+      { name: 'Sunscreen', essential: true, activities: [], climate: ['tropical', 'mediterranean'] },
+      { name: 'Beach Umbrella', essential: false, activities: [], climate: [] },
+      { name: 'Cooler', essential: false, activities: [], climate: [] },
+      { name: 'First Aid Kit', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 11. Road Trip
+  {
+    category: 'Road Trip',
+    items: [
+      { name: 'Driver’s License', essential: true, activities: [], climate: [] },
+      { name: 'Car Registration & Insurance', essential: true, activities: [], climate: [] },
+      { name: 'Spare Tire & Tools', essential: true, activities: [], climate: [] },
+      { name: 'Roadside Emergency Kit', essential: true, activities: [], climate: [] },
+      { name: 'Travel Pillow', essential: false, activities: [], climate: [] },
+      { name: 'Blanket', essential: false, activities: [], climate: [] },
+      { name: 'Snacks & Drinks', essential: true, activities: [], climate: [] },
+      { name: 'Entertainment (Music/Podcasts)', essential: false, activities: [], climate: [] },
+      { name: 'Map/GPS', essential: true, activities: [], climate: [] },
+      { name: 'Sunglasses', essential: true, activities: [], climate: [] },
+      { name: 'Cash/Card', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 12. Camping & Hiking
+  {
+    category: 'Camping & Hiking',
+    items: [
+      { name: 'Tent', essential: true, activities: ['camping'], climate: [] },
+      { name: 'Sleeping Bag', essential: true, activities: ['camping'], climate: [] },
+      { name: 'Sleeping Pad', essential: false, activities: ['camping'], climate: [] },
+      { name: 'Headlamp', essential: true, activities: ['camping', 'hiking'], climate: [] },
+      { name: 'Backpack', essential: true, activities: ['camping', 'hiking'], climate: [] },
+      { name: 'Moisture-wicking Shirts', essential: true, activities: ['hiking'], climate: [] },
+      { name: 'Hiking Pants/Shorts', essential: true, activities: ['hiking'], climate: [] },
+      { name: 'Hiking Boots', essential: true, activities: ['hiking'], climate: [] },
+      { name: 'Rain Jacket', essential: true, activities: [], climate: ['temperate'] },
+      { name: 'First Aid Kit', essential: true, activities: [], climate: [] },
+      { name: 'Water Filter', essential: false, activities: ['camping', 'hiking'], climate: [] },
+      { name: 'Trail Snacks', essential: true, activities: ['hiking'], climate: [] },
+    ]
+  },
+  // 13. Wellness/Yoga Retreat
+  {
+    category: 'Wellness/Yoga Retreat',
+    items: [
+      { name: 'Yoga Outfits', essential: true, activities: [], climate: [] },
+      { name: 'Comfortable Loungewear', essential: true, activities: [], climate: [] },
+      { name: 'Swimsuit', essential: false, activities: ['swimming'], climate: [] },
+      { name: 'Yoga Mat', essential: true, activities: [], climate: [] },
+      { name: 'Water Bottle', essential: true, activities: [], climate: [] },
+      { name: 'Journal', essential: false, activities: [], climate: [] },
+      { name: 'Retreat Schedule', essential: true, activities: [], climate: [] },
+      { name: 'Meditation Cushion', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 14. Photography Expedition
+  {
+    category: 'Photography Expedition',
+    items: [
+      { name: 'Camera Body', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Lenses', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Tripod', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Memory Cards', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Spare Batteries', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Lens Cleaning Kit', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Camera Bag', essential: true, activities: ['photography'], climate: [] },
+      { name: 'Laptop/Tablet', essential: false, activities: [], climate: [] },
+      { name: 'Weather Protection', essential: false, activities: [], climate: [] },
+      { name: 'Notebook', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 15. Cycling Tour
+  {
+    category: 'Cycling Tour',
+    items: [
+      { name: 'Bike', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Helmet', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Cycling Shorts', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Cycling Jersey', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Water Bottles', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Spare Tubes', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Tire Levers', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Mini Pump', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Multi-tool', essential: true, activities: ['outdoor-sports'], climate: [] },
+      { name: 'Energy Bars', essential: true, activities: [], climate: [] },
+      { name: 'Sunscreen', essential: true, activities: [], climate: ['arid', 'tropical', 'mediterranean'] },
+      { name: 'First Aid Kit', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 16. Scuba Diving Trip
+  {
+    category: 'Scuba Diving Trip',
+    items: [
+      { name: 'Mask & Snorkel', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Fins', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Wetsuit', essential: true, activities: ['beach'], climate: [] },
+      { name: 'BCD', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Regulator', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Dive Computer', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Surface Marker Buoy', essential: true, activities: ['beach'], climate: [] },
+      { name: 'Waterproof Bag', essential: false, activities: ['beach'], climate: [] },
+      { name: 'Certification Card', essential: true, activities: [], climate: [] },
+      { name: 'Logbook', essential: false, activities: [], climate: [] },
+    ]
+  },
+  // 17. Luxury Resort Stay
+  {
+    category: 'Luxury Resort Stay',
+    items: [
+      { name: 'Resort Wear', essential: true, activities: [], climate: [] },
+      { name: 'Swimsuits', essential: true, activities: ['beach'], climate: ['tropical', 'mediterranean'] },
+      { name: 'Evening Outfits', essential: true, activities: [], climate: [] },
+      { name: 'Sandals', essential: true, activities: [], climate: [] },
+      { name: 'Sunglasses', essential: true, activities: [], climate: [] },
+      { name: 'Beach Bag', essential: true, activities: [], climate: [] },
+      { name: 'Jewelry', essential: false, activities: [], climate: [] },
+      { name: 'Spa Appointment Confirmation', essential: false, activities: [], climate: [] },
+      { name: 'Travel Insurance', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 18. Volunteer/Service Trip
+  {
+    category: 'Volunteer/Service Trip',
+    items: [
+      { name: 'Work Clothes', essential: true, activities: [], climate: [] },
+      { name: 'Sturdy Shoes', essential: true, activities: [], climate: [] },
+      { name: 'Hat', essential: true, activities: [], climate: [] },
+      { name: 'Work Gloves', essential: true, activities: [], climate: [] },
+      { name: 'Reusable Water Bottle', essential: true, activities: [], climate: [] },
+      { name: 'First Aid Kit', essential: true, activities: [], climate: [] },
+      { name: 'Project Materials', essential: false, activities: [], climate: [] },
+      { name: 'Travel Insurance', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 19. Pet-Friendly Travel
+  {
+    category: 'Pet-Friendly Travel',
+    items: [
+      { name: 'Pet Carrier', essential: true, activities: [], climate: [] },
+      { name: 'Leash & Collar', essential: true, activities: [], climate: [] },
+      { name: 'Pet Food', essential: true, activities: [], climate: [] },
+      { name: 'Water Bowl', essential: true, activities: [], climate: [] },
+      { name: 'Pet Bed/Blanket', essential: false, activities: [], climate: [] },
+      { name: 'Vaccination Records', essential: true, activities: [], climate: [] },
+      { name: 'Pet Passport', essential: false, activities: [], climate: [] },
+      { name: 'Toys', essential: false, activities: [], climate: [] },
+      { name: 'Waste Bags', essential: true, activities: [], climate: [] },
+    ]
+  },
+  // 20. Baby & Toddler Essentials
+  {
+    category: 'Baby & Toddler Essentials',
+    items: [
+      { name: 'Diapers', essential: true, activities: [], climate: [] },
+      { name: 'Wipes', essential: true, activities: [], climate: [] },
+      { name: 'Baby Carrier/Stroller', essential: true, activities: [], climate: [] },
+      { name: 'Bottles & Formula', essential: true, activities: [], climate: [] },
+      { name: 'Pacifiers', essential: false, activities: [], climate: [] },
+      { name: 'Onesies', essential: true, activities: [], climate: [] },
+      { name: 'Sleepwear', essential: true, activities: [], climate: [] },
+      { name: 'Socks', essential: true, activities: [], climate: [] },
+      { name: 'Sun Hat', essential: true, activities: [], climate: [] },
+      { name: 'Baby Sunscreen', essential: true, activities: [], climate: [] },
+      { name: 'Favorite Toy', essential: false, activities: [], climate: [] },
+      { name: 'First Aid Kit', essential: true, activities: [], climate: [] },
+    ]
+  }
+);
+
 // Enhanced climate determination with more destinations
 function determineClimate(destination: string): ClimateType {
   const dest = destination.toLowerCase();

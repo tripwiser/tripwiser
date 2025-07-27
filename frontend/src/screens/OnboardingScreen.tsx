@@ -13,8 +13,10 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 
 import { useUserStore } from '../state/userStore';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -33,7 +35,7 @@ interface OnboardingSlide {
 const onboardingSlides: OnboardingSlide[] = [
   {
     id: 1,
-    title: 'Welcome to TripKit',
+    title: 'Welcome to TripWiser',
     subtitle: 'Plan effortlessly, pack with confidence, and turn every trip into memories that last. Your next adventure starts here.',
     description: '',
     icon: 'bag-handle-outline',
@@ -89,6 +91,7 @@ const onboardingSlides: OnboardingSlide[] = [
 ];
 
 export default function OnboardingScreen() {
+  const theme = useTheme();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -1052,35 +1055,16 @@ export default function OnboardingScreen() {
               }
             ]
           }]}>
-            <View style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              borderWidth: 4,
-              borderColor: '#4F46E5',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#F8FAFC'
-            }}>
-              <Animated.View style={{
-                transform: [
-                  { 
-                    translateY: floatingAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, -8],
-                    })
-                  },
-                  {
-                    rotate: floatingAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: ['-2deg', '2deg', '-2deg'],
-                    })
-                  }
-                ]
-              }}>
-                <Ionicons name="airplane" size={48} color="#4F46E5" />
-              </Animated.View>
-            </View>
+            <View style={{ alignItems: 'center', marginBottom: 80, marginTop: -15 }}></View>
+            <LottieView
+              source={require('../../assets/animations/Study Abroad.json')}
+              autoPlay
+              loop
+              style={{
+                width: 200,
+                height: 200,
+              }}
+            />
           </Animated.View>
         );
       default:
@@ -1096,7 +1080,7 @@ export default function OnboardingScreen() {
   return (
     <Animated.View style={{ 
       flex: 1, 
-      backgroundColor,
+      backgroundColor: theme.background,
       opacity: fadeAnim,
     }}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
@@ -1105,7 +1089,7 @@ export default function OnboardingScreen() {
       
       {/* Clean Background Gradient */}
       <LinearGradient
-        colors={currentSlideData.gradient}
+        colors={currentSlideData.gradient as [string, string, string]}
         style={{
           position: 'absolute',
           top: 0,
@@ -1521,42 +1505,15 @@ export default function OnboardingScreen() {
           zIndex: 10,
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-            <View style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              overflow: 'hidden',
-              marginRight: 4,
-              marginBottom: 2,
-            }}>
-              <LinearGradient
-                colors={currentSlideData.gradient}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-              />
-              <Image
-                source={{ uri: 'https://images.composerapi.com/C12EAB28-B9F8-4FCD-8CE4-458FD6F11AC7.jpg' }}
-                style={{
-                  width: 32,
-                  height: 32,
-                }}
-                resizeMode="contain"
-              />
-            </View>
             <Text style={{
               fontSize: 20,
               fontWeight: '900',
               letterSpacing: -0.5,
-              marginLeft: -2,
+              marginLeft: 0,
               marginBottom: 1,
             }}>
               <Text style={{ color: textColor }}>Trip</Text>
-              <Text style={{ color: currentSlideData.accentColor }}>Kit</Text>
+              <Text style={{ color: currentSlideData.accentColor }}>Wiser</Text>
             </Text>
           </View>
           
@@ -1645,10 +1602,8 @@ export default function OnboardingScreen() {
                 }}>
 
                   {/* Illustration */}
-                  <View style={{
-                    zIndex: 10,
-                  }}>
-                    {renderBrandedIllustration(slide.illustration, index)}
+                  <View style={{ zIndex: 10 }}>
+                    {index === 0 ? null : index === 1 ? null : index === 2 ? null : index === 3 ? null : renderBrandedIllustration(slide.illustration, index)}
                   </View>
                 </View>
               </Animated.View>
@@ -1660,14 +1615,59 @@ export default function OnboardingScreen() {
                 alignSelf: 'center',
                 paddingHorizontal: 32,
                 zIndex: 10,
+                marginTop: index === onboardingSlides.length - 1 ? 100 : 0,
               }}>
+                {index === 0 && (
+                  <View style={{ alignItems: 'center', marginBottom: 30, marginTop: -120 }}>
+                    <LottieView
+                      source={require('../../assets/animations/World Travel Loader.json')}
+                      autoPlay
+                      loop
+                      speed={0.5}
+                      style={{ width: 220, height: 220 }}
+                    />
+                  </View>
+                )}
+                {index === 1 && (
+                  <View style={{ alignItems: 'center', marginBottom: -50, marginTop: -120 }}>
+                    <LottieView
+                      source={require('../../assets/animations/Marking.json')}
+                      autoPlay
+                      loop
+                      speed={1}
+                      style={{ width: 280, height: 280 }}
+                    />
+                  </View>
+                )}
+                {index === 2 && (
+                  <View style={{ alignItems: 'center', marginBottom: -10, marginTop: -120 }}>
+                    <LottieView
+                      source={require('../../assets/animations/Couple Taking A Selfie.json')}
+                      autoPlay
+                      loop
+                      speed={1}
+                      style={{ width: 260, height: 260 }}
+                    />
+                  </View>
+                )}
+                {index === 3 && (
+                  <View style={{ alignItems: 'center', marginBottom: -30, marginTop: -150 }}>
+                    <LottieView
+                      source={require('../../assets/animations/support system.json')}
+                      autoPlay
+                      loop
+                      speed={1}
+                      style={{ width: 300, height: 300 }}
+                    />
+                  </View>
+                )}
                 {/* Title */}
                 <Text style={{
-                  fontSize: index === onboardingSlides.length - 1 ? 44 : 40,
+                  fontSize: 28,
                   fontWeight: '800',
                   textAlign: 'center',
                   marginBottom: 20,
-                  lineHeight: index === onboardingSlides.length - 1 ? 50 : 46,
+                  lineHeight: 32,
                   letterSpacing: -1.4,
                 }}>
                   {slide.title.includes('TripKit') ? (
@@ -1686,12 +1686,12 @@ export default function OnboardingScreen() {
                 <Text style={{
                   color: subtleTextColor,
                   fontWeight: '500',
-                  fontSize: 18,
+                  fontSize: 15,
                   marginBottom: 32,
                   letterSpacing: 0.2,
                   textAlign: 'center',
                   opacity: 0.85,
-                  lineHeight: 26,
+                  lineHeight: 22,
                 }}>
                   {slide.subtitle}
                 </Text>

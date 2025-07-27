@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vibecode.tripkit"
@@ -15,6 +15,26 @@
       "edgeToEdgeEnabled": true,
       "package": "com.vibecode.tripkit"
     },
-    "plugins": []
+    "plugins": [
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "YOUR_MAPBOX_ACCESS_TOKEN"
+        }
+      ],
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to show nearby places on the map."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5baed529-01a3-44fd-98ad-f9552550392a"
+      }
+    }
   }
 }

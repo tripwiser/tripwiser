@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,8 +36,11 @@ import { useUserStore } from '../state/userStore';
 import { PackingItem } from '../types';
 import { cn } from '../utils/cn';
 import { getTemperatureDisplayValue } from '../utils/temperature';
-import { sharePackingList, exportPackingListHTML } from '../utils/shareUtils';
+import { sharePackingList, exportPackingListHTML, openAmazonSearch } from '../utils/shareUtils';
 import UpgradePrompt from '../components/UpgradePrompt';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/ThemeContext';
+import mixpanel from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'PackingList'>;
@@ -56,7 +60,7 @@ const getSmartIcon = (categoryName: string, customEmojis: Record<string, string>
     return customEmojis[categoryName];
   }
   
-  const name = categoryName.toLowerCase();
+  const name = (categoryName || '').toLowerCase();
   
   if (name.includes('cloth') || name.includes('apparel') || name.includes('outfit')) return '👕';
   if (name.includes('shoe') || name.includes('footwear')) return '👟';
@@ -368,7 +372,7 @@ const PackingItemComponent = React.memo(function PackingItemComponent({
   return (
     <Animated.View 
       entering={FadeInDown.duration(300)}
-      className="mb-4 relative"
+      className="mb-3 relative"
     >
       {/* Delete Button Background */}
       <Animated.View 
@@ -391,17 +395,17 @@ const PackingItemComponent = React.memo(function PackingItemComponent({
       >
         <Animated.View 
           style={animatedStyle}
-          className="flex-row items-center py-5 px-6 bg-white rounded-xl border border-gray-100"
+          className="flex-row items-center py-4 px-5 bg-white rounded-xl border border-gray-100"
         >
           {/* Checkbox */}
           <Pressable 
             onPress={onToggle}
             className={cn(
-              "w-7 h-7 rounded-full border-2 mr-4 items-center justify-center",
+              "w-6 h-6 rounded-full border-2 mr-3 items-center justify-center",
               item.packed ? "bg-green-500 border-green-500" : "border-gray-300"
             )}
           >
-            {item.packed && <Ionicons name="checkmark" size={16} color="white" />}
+            {item.packed && <Ionicons name="checkmark" size={14} color="white" />}
           </Pressable>
 
           {/* Item Name - Editable */}
@@ -420,25 +424,25 @@ const PackingItemComponent = React.memo(function PackingItemComponent({
                 <View className="flex-row items-center flex-wrap">
                   <Text 
                     className={cn(
-                      "text-lg font-medium mr-3",
+                      "text-base font-medium mr-2",
                       item.packed ? "line-through text-gray-500" : "text-gray-900"
                     )}
                     style={item.packed ? { fontStyle: 'italic' } : undefined}
                   >
                     {item.name}
                   </Text>
-                  {/* Essential Tag - Only shows when essential is true */}
-                  {item.essential && (
-                    <View className="bg-orange-100 px-2 py-0.5 rounded-full mr-2">
-                      <Text className="text-orange-600 text-xs font-medium">Essential</Text>
-                    </View>
-                  )}
-                  {/* Assigned Person Tag - Only shows when assigned */}
-                  {item.assignedTo && (
-                    <View className="bg-blue-100 px-2 py-0.5 rounded-full">
-                      <Text className="text-blue-600 text-xs font-medium">{item.assignedTo}</Text>
-                    </View>
-                  )}
+                            {/* Essential Tag - Only shows when essential is true */}
+          {item.essential && (
+            <View className="bg-orange-100 px-1.5 py-0.5 rounded-full mr-1.5">
+              <Text className="text-orange-600 text-xs font-medium">Essential</Text>
+            </View>
+          )}
+          {/* Assigned Person Tag - Only shows when assigned */}
+          {item.assignedTo && (
+            <View className="bg-blue-100 px-1.5 py-0.5 rounded-full">
+              <Text className="text-blue-600 text-xs font-medium">{item.assignedTo}</Text>
+            </View>
+          )}
                 </View>
               </Pressable>
             )}
@@ -448,28 +452,43 @@ const PackingItemComponent = React.memo(function PackingItemComponent({
           <Pressable 
             onPress={onToggleEssential}
             className={cn(
-              "w-5 h-5 rounded-full border-2 mr-6 items-center justify-center",
+              "w-4 h-4 rounded-full border-2 mr-4 items-center justify-center",
               item.essential ? "bg-orange-500 border-orange-500" : "border-gray-300"
             )}
           >
-            {item.essential && <Ionicons name="checkmark" size={10} color="white" />}
+            {item.essential && <Ionicons name="checkmark" size={8} color="white" />}
           </Pressable>
 
           {/* Assign Button */}
           <Pressable 
             onPress={onAssign}
-            className="p-2.5"
+            className="p-2"
           >
             <Ionicons 
               name="person-add-outline" 
-              size={16} 
+              size={14} 
               color={canPerformActions.sharePackingList?.allowed ? "#4F46E5" : "#9CA3AF"} 
             />
             {!canPerformActions.sharePackingList?.allowed && (
-              <View className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full items-center justify-center">
-                <Ionicons name="star" size={8} color="white" />
+              <View className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-500 rounded-full items-center justify-center">
+                <Ionicons name="star" size={6} color="white" />
               </View>
             )}
+          </Pressable>
+
+          {/* Amazon Search Button */}
+          <Pressable 
+            onPress={() => openAmazonSearch(item.name)}
+            className="p-2 items-center"
+          >
+            <View className="w-5 h-5 items-center justify-center bg-orange-50 rounded-full mb-0.5">
+              <Image 
+                source={require('../../assets/amazon.png')}
+                style={{ width: 14, height: 14 }}
+                resizeMode="contain"
+              />
+            </View>
+            <Text className="text-orange-500 text-xs">Buy</Text>
           </Pressable>
         </Animated.View>
       </PanGestureHandler>
@@ -693,10 +712,10 @@ const CategoryCard = React.memo(function CategoryCard({
           className="bg-white rounded-2xl shadow-sm border border-gray-100"
         >
           {/* Category Header */}
-          <Pressable onPress={onToggleExpand} className="p-6">
+          <Pressable onPress={onToggleExpand} className="p-5">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
-                <Text className="text-3xl mr-4">{category.icon}</Text>
+                <Text className="text-2xl mr-3">{category.icon}</Text>
                 
                 {isEditingCategory ? (
                   <TextInput
@@ -705,39 +724,39 @@ const CategoryCard = React.memo(function CategoryCard({
                     onSubmitEditing={handleEditCategory}
                     onBlur={handleEditCategory}
                     autoFocus
-                    className="text-xl font-bold text-gray-900 bg-gray-50 px-3 py-2 rounded flex-1"
+                    className="text-lg font-bold text-gray-900 bg-gray-50 px-3 py-2 rounded flex-1"
                   />
                 ) : (
                   <Pressable onPress={() => setIsEditingCategory(true)} className="flex-1">
-                    <Text className="text-xl font-bold text-gray-900">{category.name}</Text>
+                    <Text className="text-lg font-bold text-gray-900">{category.name}</Text>
                   </Pressable>
                 )}
               </View>
 
               <View className="flex-row items-center">
                 {/* Progress */}
-                <View className="mr-4">
-                  <Text className="text-base font-medium text-gray-600">
+                <View className="mr-3">
+                  <Text className="text-sm font-medium text-gray-600">
                     {packedCount}/{totalCount}
                   </Text>
-                  <View className="w-20 h-3 bg-gray-200 rounded-full mt-1">
+                  <View className="w-16 h-2 bg-gray-200 rounded-full mt-1">
                     <View 
-                      className="h-3 bg-green-500 rounded-full" 
+                      className="h-2 bg-green-500 rounded-full" 
                       style={{ width: `${progress}%` }}
                     />
                   </View>
                 </View>
 
                 {/* Assign Category */}
-                <Pressable onPress={onAssignCategory} className="p-3 mr-2">
+                <Pressable onPress={onAssignCategory} className="p-2 mr-2">
                   <Ionicons 
                     name="person-add-outline" 
-                    size={18} 
+                    size={16} 
                     color={canPerformActions.sharePackingList?.allowed ? "#4F46E5" : "#9CA3AF"} 
                   />
                   {!canPerformActions.sharePackingList?.allowed && (
-                    <View className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full items-center justify-center">
-                      <Ionicons name="star" size={8} color="white" />
+                    <View className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-500 rounded-full items-center justify-center">
+                      <Ionicons name="star" size={6} color="white" />
                     </View>
                   )}
                 </Pressable>
@@ -745,7 +764,7 @@ const CategoryCard = React.memo(function CategoryCard({
                 {/* Expand/Collapse */}
                 <Ionicons 
                   name={category.isExpanded ? "chevron-up" : "chevron-down"} 
-                  size={24} 
+                  size={20} 
                   color="#6B7280" 
                 />
               </View>
@@ -754,11 +773,11 @@ const CategoryCard = React.memo(function CategoryCard({
 
           {/* Category Content */}
           {category.isExpanded && (
-            <View className="px-6 pb-6">
+            <View className="px-5 pb-5">
               {/* Items */}
-              {category.items.map((item) => (
+              {category.items.map((item, index) => (
                 <PackingItemComponent
-                  key={item.id}
+                  key={item.id || item.name || index}
                   item={item}
                   onToggle={() => onToggleItem(item.id)}
                   onEdit={(newName) => onEditItem(item.id, newName)}
@@ -806,10 +825,10 @@ const CategoryCard = React.memo(function CategoryCard({
               ) : (
                 <Pressable 
                   onPress={() => setShowAddItem(true)}
-                  className="flex-row items-center mt-3 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300"
+                  className="flex-row items-center mt-3 p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300"
                 >
-                  <Ionicons name="add" size={22} color="#6B7280" />
-                  <Text className="ml-3 text-gray-600 font-medium text-base">Add item</Text>
+                  <Ionicons name="add" size={18} color="#6B7280" />
+                  <Text className="ml-2 text-gray-600 font-medium text-sm">Add item</Text>
                 </Pressable>
               )}
             </View>
@@ -833,7 +852,6 @@ export default function PackingListScreen() {
   const addPackingItem = useTripStore((state) => state.addPackingItem);
   const updatePackingItem = useTripStore((state) => state.updatePackingItem);
   const removePackingItem = useTripStore((state) => state.removePackingItem);
-  const getPackingProgress = useTripStore((state) => state.getPackingProgress);
   
   const canPerformAction = useUserStore((state) => state.canPerformAction);
   const getEffectiveTier = useUserStore((state) => state.getEffectiveTier);
@@ -852,7 +870,9 @@ export default function PackingListScreen() {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>('sharePackingList');
 
-  const progress = getPackingProgress(tripId);
+  useEffect(() => {
+    mixpanel.track('PackingList Screen Viewed');
+  }, []);
 
   // Group items into categories
   const categories = useMemo(() => {
@@ -867,16 +887,22 @@ export default function PackingListScreen() {
       return acc;
     }, {} as Record<string, PackingItem[]>);
 
-    return Object.entries(grouped).map(([name, items]) => ({
-      id: name,
-      name,
+    return Object.entries(grouped).map(([name, items], index) => ({
+      id: name || `category-${index}`,
+      name: name || `Category ${index + 1}`,
       icon: getSmartIcon(name, customEmojis),
       items: items.filter(item => 
-        item.name.toLowerCase().includes(searchText.toLowerCase())
+        (item.name || '').toLowerCase().includes((searchText || '').toLowerCase())
       ),
-      isExpanded: expandedCategories.has(name),
+      isExpanded: expandedCategories.has(name || `category-${index}`),
     })).filter(category => category.items.length > 0 || searchText === '');
   }, [trip, searchText, expandedCategories, customEmojis]);
+
+  // Calculate overall progress
+  const allItems = categories.flatMap((cat) => cat.items);
+  const totalCount = allItems.length;
+  const packedCount = allItems.filter((item) => item.packed).length;
+  const percentage = totalCount > 0 ? Math.round((packedCount / totalCount) * 100) : 0;
 
   if (!trip) {
     return (
@@ -942,79 +968,165 @@ export default function PackingListScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <StatusBar style="dark" />
-      
-      {/* Compact Header */}
-      <View className="bg-white border-b border-gray-100 pt-6 pb-4">
-        <View className="px-5">
-          {/* Trip Info */}
-          <Animated.View entering={FadeInDown.duration(500)} className="flex-row items-center justify-between mb-4">
-            <View className="flex-1">
-              <Text className="text-3xl font-bold text-gray-900" numberOfLines={1}>{trip.name}</Text>
-              <View className="flex-row items-center mt-1.5">
-                <Ionicons name="location" size={18} color="#6B7280" />
-                <Text className="text-gray-600 ml-1.5 text-lg font-medium" numberOfLines={1}>
-                  {trip.destination} • {format(new Date(trip.startDate), 'MMM d')}-{format(new Date(trip.endDate), 'd')}
-                </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={{ flex: 1 }}>
+        <StatusBar style="dark" />
+        
+        {/* Compact Header */}
+        <View className="bg-white border-b border-gray-100 pt-6 pb-4">
+          <View className="px-5">
+            {/* Trip Info */}
+            <Animated.View entering={FadeInDown.duration(500)} className="flex-row items-center justify-between mb-4">
+              <View className="flex-1">
+                <Text className="text-3xl font-bold text-gray-900" numberOfLines={1}>{trip.name}</Text>
+                <View className="flex-row items-center mt-1.5">
+                  <Ionicons name="location" size={18} color="#6B7280" />
+                  <Text className="text-gray-600 ml-1.5 text-lg font-medium" numberOfLines={1}>
+                    {trip.destination} • {format(new Date(trip.startDate), 'MMM d')}-{format(new Date(trip.endDate), 'd')}
+                  </Text>
+                </View>
               </View>
-            </View>
-            
-            {/* Progress Badge */}
-            <View style={{
-              borderRadius: 12,
-              overflow: 'hidden',
-            }}>
-              <LinearGradient
-                colors={['#4F46E5', '#6366F1']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 10,
-                }}
-              >
-                <Text style={{
-                  color: 'white',
-                  fontWeight: '700',
-                  fontSize: 18,
-                  letterSpacing: 0.2,
-                }}>
-                  {progress.percentage}%
-                </Text>
-              </LinearGradient>
-            </View>
-          </Animated.View>
-          
-          {/* Search + Weather + Actions */}
-          <Animated.View entering={FadeInDown.delay(100).duration(500)} className="flex-row items-center">
-            {/* Search */}
-            <View className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-5 py-3.5 flex-row items-center mr-4">
-              <Ionicons name="search" size={20} color="#9CA3AF" />
-              <TextInput
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholder="Search all items..."
-                className="flex-1 ml-3 text-gray-900 text-base"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-            
-            {/* Weather */}
-            {trip.weather && (
-              <View className="bg-gray-50 rounded-xl px-4 py-3.5 flex-row items-center mr-4">
-                <Text className="text-xl mr-2">{trip.weather.icon}</Text>
-                <Text className="text-gray-900 font-semibold text-base">
-                  {getTemperatureDisplayValue(trip.weather.temperature.min, temperatureUnit).value}°-{getTemperatureDisplayValue(trip.weather.temperature.max, temperatureUnit).value}°
-                </Text>
+              
+              {/* Progress Badge */}
+              <View style={{
+                borderRadius: 12,
+                overflow: 'hidden',
+              }}>
+                <LinearGradient
+                  colors={['#4F46E5', '#6366F1']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 10,
+                  }}
+                >
+                  <Text style={{
+                    color: 'white',
+                    fontWeight: '700',
+                    fontSize: 18,
+                    letterSpacing: 0.2,
+                  }}>
+                    {totalCount > 0 ? `${percentage}%` : 'N/A'}
+                  </Text>
+                </LinearGradient>
               </View>
-            )}
+            </Animated.View>
+            
+            {/* Search + Weather + Actions */}
+            <Animated.View entering={FadeInDown.delay(100).duration(500)} className="flex-row items-center">
+              {/* Search */}
+              <View className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-5 py-3.5 flex-row items-center mr-4">
+                <Ionicons name="search" size={20} color="#9CA3AF" />
+                <TextInput
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  placeholder="Search all items..."
+                  className="flex-1 ml-3 text-gray-900 text-base"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+              
+              {/* Weather */}
+              {trip.weather && (
+                <View className="bg-gray-50 rounded-xl px-4 py-3.5 flex-row items-center mr-4">
+                  <Text className="text-xl mr-2">{trip.weather.icon}</Text>
+                  <Text className="text-gray-900 font-semibold text-base">
+                    {getTemperatureDisplayValue(trip.weather.temperature.min, temperatureUnit).value}°-{getTemperatureDisplayValue(trip.weather.temperature.max, temperatureUnit).value}°
+                  </Text>
+                </View>
+              )}
 
-            {/* Share Button */}
-            <Pressable 
-              onPress={() => {
-                const { allowed } = canPerformAction('sharePackingList');
-                
+              {/* Share Button */}
+              <Pressable 
+                onPress={() => {
+                  const { allowed } = canPerformAction('sharePackingList');
+                  
+                  if (!allowed) {
+                    setUpgradeFeature('sharePackingList');
+                    setShowUpgradePrompt(true);
+                    return;
+                  }
+                  
+                  Alert.alert(
+                    'Share Packing List',
+                    'How would you like to share your packing list?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Share as Text', 
+                        onPress: () => {
+                          incrementUsage('packingListShares');
+                          sharePackingList(trip, { format: 'text', customEmojis });
+                        }
+                      },
+                      { 
+                        text: 'Export as HTML', 
+                        onPress: () => {
+                          incrementUsage('packingListShares');
+                          exportPackingListHTML(trip, { format: 'text', customEmojis });
+                        }
+                      },
+                      { 
+                        text: 'Share Link', 
+                        onPress: () => {
+                          incrementUsage('packingListShares');
+                          sharePackingList(trip, { format: 'link', customEmojis });
+                        }
+                      },
+                    ]
+                  );
+                }}
+                className="bg-gray-50 rounded-xl px-4 py-3.5 flex-row items-center"
+              >
+                <Ionicons 
+                  name="share-outline" 
+                  size={20} 
+                  color={canPerformAction('sharePackingList').allowed ? "#4F46E5" : "#9CA3AF"} 
+                />
+                {!canPerformAction('sharePackingList').allowed && (
+                  <View className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full items-center justify-center">
+                    <Ionicons name="star" size={8} color="white" />
+                  </View>
+                )}
+              </Pressable>
+
+            </Animated.View>
+          </View>
+        </View>
+
+        {/* Categories List */}
+        <ScrollView 
+          className="flex-1" 
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {categories.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              onToggleExpand={() => handleToggleExpand(category.id)}
+              onEditCategory={(newName) => {
+                // This would require a more complex update of all items in the category
+                // For now, we'll keep the original name
+              }}
+              onDeleteCategory={() => {
+                // Delete all items in the category
+                category.items.forEach(item => {
+                  removePackingItem(tripId, item.id);
+                });
+              }}
+              onAddItem={(itemName) => handleAddItem(category.name, itemName)}
+              onEditItem={handleEditItem}
+              onDeleteItem={(itemId) => removePackingItem(tripId, itemId)}
+              onToggleItem={(itemId) => togglePackingItem(tripId, itemId)}
+              onToggleEssential={handleToggleEssential}
+              canPerformActions={{
+                sharePackingList: canPerformAction('sharePackingList'),
+                exportPdf: canPerformAction('exportPdf'),
+              }}
+              onAssignCategory={() => {
+                const { allowed } = canPerformAction('sharePackingList'); // Using sharing as proxy for collaboration
                 if (!allowed) {
                   setUpgradeFeature('sharePackingList');
                   setShowUpgradePrompt(true);
@@ -1022,274 +1134,190 @@ export default function PackingListScreen() {
                 }
                 
                 Alert.alert(
-                  'Share Packing List',
-                  'How would you like to share your packing list?',
+                  'Assign Category',
+                  `Assign "${category.name}" category to a team member?`,
                   [
                     { text: 'Cancel', style: 'cancel' },
-                    { 
-                      text: 'Share as Text', 
-                      onPress: () => {
-                        incrementUsage('packingListShares');
-                        sharePackingList(trip, { format: 'text' });
-                      }
-                    },
-                    { 
-                      text: 'Export as HTML', 
-                      onPress: () => {
-                        incrementUsage('packingListShares');
-                        exportPackingListHTML(trip, { format: 'text' });
-                      }
-                    },
-                    { 
-                      text: 'Share Link', 
-                      onPress: () => {
-                        incrementUsage('packingListShares');
-                        sharePackingList(trip, { format: 'link' });
-                      }
-                    },
+                    { text: 'John', onPress: () => Alert.alert('Assigned', `"${category.name}" assigned to John`) },
+                    { text: 'Sarah', onPress: () => Alert.alert('Assigned', `"${category.name}" assigned to Sarah`) },
+                    { text: 'Mike', onPress: () => Alert.alert('Assigned', `"${category.name}" assigned to Mike`) },
                   ]
                 );
               }}
-              className="bg-gray-50 rounded-xl px-4 py-3.5 flex-row items-center"
-            >
-              <Ionicons 
-                name="share-outline" 
-                size={20} 
-                color={canPerformAction('sharePackingList').allowed ? "#4F46E5" : "#9CA3AF"} 
-              />
-              {!canPerformAction('sharePackingList').allowed && (
-                <View className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full items-center justify-center">
-                  <Ionicons name="star" size={8} color="white" />
+              onAssignItem={(itemId) => {
+                const { allowed } = canPerformAction('sharePackingList'); // Using sharing as proxy for collaboration
+                if (!allowed) {
+                  setUpgradeFeature('sharePackingList');
+                  setShowUpgradePrompt(true);
+                  return;
+                }
+                
+                const item = trip.packingList.find(i => i.id === itemId);
+                if (item) {
+                  Alert.alert(
+                    'Assign Item',
+                    `Assign "${item.name}" to a team member?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'John', 
+                        onPress: () => updatePackingItem(tripId, itemId, { assignedTo: 'John' })
+                      },
+                      { 
+                        text: 'Sarah', 
+                        onPress: () => updatePackingItem(tripId, itemId, { assignedTo: 'Sarah' })
+                      },
+                      { 
+                        text: 'Mike', 
+                        onPress: () => updatePackingItem(tripId, itemId, { assignedTo: 'Mike' })
+                      },
+                      { 
+                        text: 'Unassign', 
+                        style: 'destructive',
+                        onPress: () => updatePackingItem(tripId, itemId, { assignedTo: undefined })
+                      },
+                    ]
+                  );
+                }
+              }}
+            />
+          ))}
+
+          {/* Add Category Section - Always at bottom */}
+          <Pressable 
+            onPress={() => setShowAddCategory(true)}
+            className="flex-row items-center mt-4 p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300"
+          >
+            <Ionicons name="add" size={24} color="#6B7280" />
+            <Text className="ml-3 text-gray-600 font-medium text-lg">Add new category</Text>
+          </Pressable>
+
+          {categories.length === 0 && searchText === '' && (
+            <View className="items-center justify-center py-12 mb-4">
+              <Text className="text-xl font-bold text-gray-900 mb-2">No categories yet</Text>
+              <Text className="text-gray-600 text-center">Tap "Add new category" below to create your first category</Text>
+            </View>
+          )}
+        </ScrollView>
+
+
+
+        {/* Add Category Modal */}
+        <Modal
+          visible={showAddCategory && !showEmojiPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowAddCategory(false)}
+        >
+          <KeyboardAvoidingView 
+            className="flex-1" 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+          >
+            <View className="flex-1 justify-end bg-black/50">
+              <Animated.View 
+                entering={FadeInDown.duration(300)}
+                className="bg-white rounded-t-3xl p-6"
+              >
+                <Text className="text-xl font-bold text-gray-900 mb-4">Add New Category</Text>
+                
+                {/* Category Name Input */}
+                <View className="mb-4">
+                  <Text className="text-sm font-medium text-gray-700 mb-2">Category Name</Text>
+                  <TextInput
+                    value={newCategoryName}
+                    onChangeText={setNewCategoryName}
+                    placeholder="Category name (e.g., Food, Electronics)"
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3"
+                    returnKeyType="done"
+                    onSubmitEditing={handleAddCategory}
+                  />
                 </View>
-              )}
-            </Pressable>
-
-          </Animated.View>
-        </View>
-      </View>
-
-      {/* Categories List */}
-      <ScrollView 
-        className="flex-1" 
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {categories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            category={category}
-            onToggleExpand={() => handleToggleExpand(category.id)}
-            onEditCategory={(newName) => {
-              // This would require a more complex update of all items in the category
-              // For now, we'll keep the original name
-            }}
-            onDeleteCategory={() => {
-              // Delete all items in the category
-              category.items.forEach(item => {
-                removePackingItem(tripId, item.id);
-              });
-            }}
-            onAddItem={(itemName) => handleAddItem(category.name, itemName)}
-            onEditItem={handleEditItem}
-            onDeleteItem={(itemId) => removePackingItem(tripId, itemId)}
-            onToggleItem={(itemId) => togglePackingItem(tripId, itemId)}
-            onToggleEssential={handleToggleEssential}
-            canPerformActions={{
-              sharePackingList: canPerformAction('sharePackingList'),
-              exportPdf: canPerformAction('exportPdf'),
-            }}
-            onAssignCategory={() => {
-              const { allowed } = canPerformAction('sharePackingList'); // Using sharing as proxy for collaboration
-              if (!allowed) {
-                setUpgradeFeature('sharePackingList');
-                setShowUpgradePrompt(true);
-                return;
-              }
-              
-              Alert.alert(
-                'Assign Category',
-                `Assign "${category.name}" category to a team member?`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'John', onPress: () => Alert.alert('Assigned', `"${category.name}" assigned to John`) },
-                  { text: 'Sarah', onPress: () => Alert.alert('Assigned', `"${category.name}" assigned to Sarah`) },
-                  { text: 'Mike', onPress: () => Alert.alert('Assigned', `"${category.name}" assigned to Mike`) },
-                ]
-              );
-            }}
-            onAssignItem={(itemId) => {
-              const { allowed } = canPerformAction('sharePackingList'); // Using sharing as proxy for collaboration
-              if (!allowed) {
-                setUpgradeFeature('sharePackingList');
-                setShowUpgradePrompt(true);
-                return;
-              }
-              
-              const item = trip.packingList.find(i => i.id === itemId);
-              if (item) {
-                Alert.alert(
-                  'Assign Item',
-                  `Assign "${item.name}" to a team member?`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { 
-                      text: 'John', 
-                      onPress: () => updatePackingItem(tripId, itemId, { assignedTo: 'John' })
-                    },
-                    { 
-                      text: 'Sarah', 
-                      onPress: () => updatePackingItem(tripId, itemId, { assignedTo: 'Sarah' })
-                    },
-                    { 
-                      text: 'Mike', 
-                      onPress: () => updatePackingItem(tripId, itemId, { assignedTo: 'Mike' })
-                    },
-                    { 
-                      text: 'Unassign', 
-                      style: 'destructive',
-                      onPress: () => updatePackingItem(tripId, itemId, { assignedTo: undefined })
-                    },
-                  ]
-                );
-              }
-            }}
-          />
-        ))}
-
-        {/* Add Category Section - Always at bottom */}
-        <Pressable 
-          onPress={() => setShowAddCategory(true)}
-          className="flex-row items-center mt-4 p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300"
-        >
-          <Ionicons name="add" size={24} color="#6B7280" />
-          <Text className="ml-3 text-gray-600 font-medium text-lg">Add new category</Text>
-        </Pressable>
-
-        {categories.length === 0 && searchText === '' && (
-          <View className="items-center justify-center py-12 mb-4">
-            <Text className="text-xl font-bold text-gray-900 mb-2">No categories yet</Text>
-            <Text className="text-gray-600 text-center">Tap "Add new category" below to create your first category</Text>
-          </View>
-        )}
-      </ScrollView>
-
-
-
-      {/* Add Category Modal */}
-      <Modal
-        visible={showAddCategory && !showEmojiPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAddCategory(false)}
-      >
-        <KeyboardAvoidingView 
-          className="flex-1" 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <View className="flex-1 justify-end bg-black/50">
-            <Animated.View 
-              entering={FadeInDown.duration(300)}
-              className="bg-white rounded-t-3xl p-6"
-            >
-              <Text className="text-xl font-bold text-gray-900 mb-4">Add New Category</Text>
-              
-              {/* Category Name Input */}
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Category Name</Text>
-                <TextInput
-                  value={newCategoryName}
-                  onChangeText={setNewCategoryName}
-                  placeholder="Category name (e.g., Food, Electronics)"
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3"
-                  returnKeyType="done"
-                  onSubmitEditing={handleAddCategory}
-                />
-              </View>
-              
-              {/* Emoji Selection */}
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Choose Icon</Text>
-                <Pressable 
-                  onPress={() => setShowEmojiPicker(true)}
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 flex-row items-center"
-                >
-                  <Text style={{ fontSize: 24, marginRight: 12 }}>{selectedEmoji}</Text>
-                  <Text className="text-gray-600 flex-1">Tap to choose emoji</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                </Pressable>
-              </View>
-              
-              <View className="flex-row gap-4">
-                <Pressable 
-                  onPress={() => {
-                    setShowAddCategory(false);
-                    setNewCategoryName('');
-                    setSelectedEmoji('📦');
-                  }}
-                  className="flex-1 bg-gray-100 rounded-xl py-3 items-center mr-2"
-                >
-                  <Text className="text-gray-700 font-semibold">Cancel</Text>
-                </Pressable>
-                <Pressable 
-                  onPress={handleAddCategory}
-                  className="flex-1 ml-2"
-                  style={{
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <LinearGradient
-                    colors={['#4F46E5', '#6366F1']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                
+                {/* Emoji Selection */}
+                <View className="mb-4">
+                  <Text className="text-sm font-medium text-gray-700 mb-2">Choose Icon</Text>
+                  <Pressable 
+                    onPress={() => setShowEmojiPicker(true)}
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 flex-row items-center"
+                  >
+                    <Text style={{ fontSize: 24, marginRight: 12 }}>{selectedEmoji}</Text>
+                    <Text className="text-gray-600 flex-1">Tap to choose emoji</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </Pressable>
+                </View>
+                
+                <View className="flex-row gap-4">
+                  <Pressable 
+                    onPress={() => {
+                      setShowAddCategory(false);
+                      setNewCategoryName('');
+                      setSelectedEmoji('📦');
+                    }}
+                    className="flex-1 bg-gray-100 rounded-xl py-3 items-center mr-2"
+                  >
+                    <Text className="text-gray-700 font-semibold">Cancel</Text>
+                  </Pressable>
+                  <Pressable 
+                    onPress={handleAddCategory}
+                    className="flex-1 ml-2"
                     style={{
-                      paddingVertical: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      borderRadius: 12,
+                      overflow: 'hidden',
                     }}
                   >
-                    <Text style={{
-                      color: 'white',
-                      fontWeight: '600',
-                      fontSize: 16,
-                    }}>Add Category</Text>
-                  </LinearGradient>
-                </Pressable>
-              </View>
-            </Animated.View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
-      {/* Emoji Picker Modal */}
-      <Modal
-        visible={showEmojiPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowEmojiPicker(false)}
-      >
-        <EmojiPicker 
-          selectedEmoji={selectedEmoji}
-          onEmojiSelect={(emoji) => {
-            setSelectedEmoji(emoji);
-            setShowEmojiPicker(false);
-          }}
-          onClose={() => setShowEmojiPicker(false)}
-        />
-      </Modal>
+                    <LinearGradient
+                      colors={['#4F46E5', '#6366F1']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{
+                        color: 'white',
+                        fontWeight: '600',
+                        fontSize: 16,
+                      }}>Add Category</Text>
+                    </LinearGradient>
+                  </Pressable>
+                </View>
+              </Animated.View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+        
+        {/* Emoji Picker Modal */}
+        <Modal
+          visible={showEmojiPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowEmojiPicker(false)}
+        >
+          <EmojiPicker 
+            selectedEmoji={selectedEmoji}
+            onEmojiSelect={(emoji) => {
+              setSelectedEmoji(emoji);
+              setShowEmojiPicker(false);
+            }}
+            onClose={() => setShowEmojiPicker(false)}
+          />
+        </Modal>
 
-      <UpgradePrompt
-        visible={showUpgradePrompt}
-        onClose={() => setShowUpgradePrompt(false)}
-        onUpgrade={() => {
-          setShowUpgradePrompt(false);
-          navigation.navigate('Subscription');
-        }}
-        feature={upgradeFeature}
-        currentTier={currentTier}
-        suggestedTier={currentTier === 'free' ? 'pro' : 'elite'}
-      />
-    </View>
+        <UpgradePrompt
+          visible={showUpgradePrompt}
+          onClose={() => setShowUpgradePrompt(false)}
+          onUpgrade={() => {
+            setShowUpgradePrompt(false);
+            navigation.navigate('Subscription');
+          }}
+          feature={upgradeFeature}
+          currentTier={currentTier}
+          suggestedTier={currentTier === 'free' ? 'pro' : 'elite'}
+        />
+      </View>
+    </SafeAreaView>
   );
 }

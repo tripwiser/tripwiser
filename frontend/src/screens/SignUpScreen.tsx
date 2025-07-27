@@ -26,6 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useUserStore } from '../state/userStore';
 import { cn } from '../utils/cn';
 import { authService, AuthUser } from '../services/authService';
+import { useTheme } from '../theme/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -42,6 +43,7 @@ export default function SignUpScreen() {
   const buttonScale = useSharedValue(1);
   const setUser = useUserStore((state) => state.setUser);
   const completeOnboarding = useUserStore((state) => state.completeOnboarding);
+  const theme = useTheme();
 
   const handleSignUp = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -159,8 +161,8 @@ export default function SignUpScreen() {
   }));
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <StatusBar style="dark" />
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <StatusBar style={theme.isDark ? "light" : "dark"} />
       
       {/* Background Gradient */}
       <LinearGradient
@@ -210,7 +212,7 @@ export default function SignUpScreen() {
               <Text style={{
                 fontSize: 32,
                 fontWeight: '800',
-                color: '#1A202C',
+                color: theme.text,
                 marginBottom: 8,
                 textAlign: 'center',
                 letterSpacing: -1,
@@ -219,7 +221,7 @@ export default function SignUpScreen() {
               </Text>
               <Text style={{
                 fontSize: 18,
-                color: '#4A5568',
+                color: theme.muted,
                 textAlign: 'center',
                 opacity: 0.85,
                 lineHeight: 24,
@@ -234,16 +236,16 @@ export default function SignUpScreen() {
                 {/* Name Input */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{
-                    color: '#4A5568',
+                    color: theme.muted,
                     fontWeight: '600',
                     marginBottom: 8,
                     fontSize: 16,
                   }}>Full Name</Text>
                   <View style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.card,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: theme.border,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     flexDirection: 'row',
@@ -254,7 +256,7 @@ export default function SignUpScreen() {
                     shadowRadius: 4,
                     elevation: 2,
                   }}>
-                    <Ionicons name="person-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="person-outline" size={20} color={theme.primary} />
                     <TextInput
                       value={name}
                       onChangeText={setName}
@@ -263,10 +265,10 @@ export default function SignUpScreen() {
                       style={{
                         flex: 1,
                         marginLeft: 12,
-                        color: '#1A202C',
+                        color: theme.text,
                         fontSize: 16,
                       }}
-                      placeholderTextColor="#A0AEC0"
+                      placeholderTextColor={theme.muted}
                     />
                   </View>
                 </View>
@@ -274,16 +276,16 @@ export default function SignUpScreen() {
                 {/* Email Input */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{
-                    color: '#4A5568',
+                    color: theme.muted,
                     fontWeight: '600',
                     marginBottom: 8,
                     fontSize: 16,
                   }}>Email</Text>
                   <View style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.card,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: theme.border,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     flexDirection: 'row',
@@ -294,7 +296,7 @@ export default function SignUpScreen() {
                     shadowRadius: 4,
                     elevation: 2,
                   }}>
-                    <Ionicons name="mail-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="mail-outline" size={20} color={theme.primary} />
                     <TextInput
                       value={email}
                       onChangeText={setEmail}
@@ -305,10 +307,10 @@ export default function SignUpScreen() {
                       style={{
                         flex: 1,
                         marginLeft: 12,
-                        color: '#1A202C',
+                        color: theme.text,
                         fontSize: 16,
                       }}
-                      placeholderTextColor="#A0AEC0"
+                      placeholderTextColor={theme.muted}
                     />
                   </View>
                 </View>
@@ -316,16 +318,16 @@ export default function SignUpScreen() {
                 {/* Password Input */}
                 <View style={{ marginBottom: 24 }}>
                   <Text style={{
-                    color: '#4A5568',
+                    color: theme.muted,
                     fontWeight: '600',
                     marginBottom: 8,
                     fontSize: 16,
                   }}>Password</Text>
                   <View style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.card,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: theme.border,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     flexDirection: 'row',
@@ -336,7 +338,7 @@ export default function SignUpScreen() {
                     shadowRadius: 4,
                     elevation: 2,
                   }}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="lock-closed-outline" size={20} color={theme.primary} />
                     <TextInput
                       value={password}
                       onChangeText={setPassword}
@@ -345,21 +347,21 @@ export default function SignUpScreen() {
                       style={{
                         flex: 1,
                         marginLeft: 12,
-                        color: '#1A202C',
+                        color: theme.text,
                         fontSize: 16,
                       }}
-                      placeholderTextColor="#A0AEC0"
+                      placeholderTextColor={theme.muted}
                     />
                     <Pressable onPress={() => setShowPassword(!showPassword)}>
                       <Ionicons 
                         name={showPassword ? "eye-off-outline" : "eye-outline"} 
                         size={20} 
-                        color="#4F46E5" 
+                        color={theme.primary} 
                       />
                     </Pressable>
                   </View>
                   <Text style={{
-                    color: '#A0AEC0',
+                    color: theme.muted,
                     fontSize: 14,
                     marginTop: 4,
                     marginLeft: 4,
@@ -371,16 +373,16 @@ export default function SignUpScreen() {
                 {/* Confirm Password Input */}
                 <View style={{ marginBottom: 32 }}>
                   <Text style={{
-                    color: '#4A5568',
+                    color: theme.muted,
                     fontWeight: '600',
                     marginBottom: 8,
                     fontSize: 16,
                   }}>Confirm Password</Text>
                   <View style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.card,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: theme.border,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     flexDirection: 'row',
@@ -391,7 +393,7 @@ export default function SignUpScreen() {
                     shadowRadius: 4,
                     elevation: 2,
                   }}>
-                    <Ionicons name="shield-checkmark-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="shield-checkmark-outline" size={20} color={theme.primary} />
                     <TextInput
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
@@ -400,16 +402,16 @@ export default function SignUpScreen() {
                       style={{
                         flex: 1,
                         marginLeft: 12,
-                        color: '#1A202C',
+                        color: theme.text,
                         fontSize: 16,
                       }}
-                      placeholderTextColor="#A0AEC0"
+                      placeholderTextColor={theme.muted}
                     />
                     <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                       <Ionicons 
                         name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
                         size={20} 
-                        color="#4F46E5" 
+                        color={theme.primary} 
                       />
                     </Pressable>
                   </View>
@@ -472,11 +474,11 @@ export default function SignUpScreen() {
                   <View style={{ 
                     flex: 1, 
                     height: 1, 
-                    backgroundColor: '#E2E8F0' 
+                    backgroundColor: theme.border 
                   }} />
                   <Text style={{ 
                     marginHorizontal: 16, 
-                    color: '#A0AEC0', 
+                    color: theme.muted, 
                     fontWeight: '500',
                     fontSize: 14 
                   }}>
@@ -485,7 +487,7 @@ export default function SignUpScreen() {
                   <View style={{ 
                     flex: 1, 
                     height: 1, 
-                    backgroundColor: '#E2E8F0' 
+                    backgroundColor: theme.border 
                   }} />
                 </View>
 
@@ -496,10 +498,10 @@ export default function SignUpScreen() {
                     onPress={handleGoogleSignUp}
                     disabled={isLoading}
                     style={{
-                      backgroundColor: '#FFFFFF',
+                      backgroundColor: theme.card,
                       borderRadius: 16,
                       borderWidth: 1,
-                      borderColor: '#E2E8F0',
+                      borderColor: theme.border,
                       paddingVertical: 16,
                       paddingHorizontal: 16,
                       flexDirection: 'row',
@@ -516,7 +518,7 @@ export default function SignUpScreen() {
                     <Ionicons name="logo-google" size={24} color="#4285F4" />
                     <Text style={{
                       marginLeft: 12,
-                      color: '#1A202C',
+                      color: theme.text,
                       fontWeight: '600',
                       fontSize: 16,
                     }}>
@@ -559,7 +561,7 @@ export default function SignUpScreen() {
                 <View className="flex-row justify-center items-center">
                   <Text className="text-gray-600">Already have an account? </Text>
                   <Pressable onPress={handleLogin}>
-                    <Text style={{ color: '#4F46E5', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
+                    <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 16 }}>Sign In</Text>
                   </Pressable>
                 </View>
               </Animated.View>

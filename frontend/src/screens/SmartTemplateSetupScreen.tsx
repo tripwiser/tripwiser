@@ -24,6 +24,7 @@ import { useTemplateStore } from '../state/templateStore';
 import { useUserStore } from '../state/userStore';
 import { generateSmartTemplate } from '../services/smartTemplateService';
 import { cn } from '../utils/cn';
+import AILoadingScreen from '../components/AILoadingScreen';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'SmartTemplateSetup'>;
@@ -193,7 +194,7 @@ export default function SmartTemplateSetupScreen() {
       
       {/* Header */}
       <SafeAreaView className="bg-white border-b border-gray-100">
-        <View className="px-4 py-3 flex-row items-center">
+        <View className="px-4 flex-row items-center" style={{ paddingTop: insets.top, paddingBottom: 12 }}>
           <Pressable onPress={() => navigation.goBack()} className="mr-4">
             <Ionicons name="arrow-back" size={24} color="#374151" />
           </Pressable>
@@ -543,6 +544,13 @@ export default function SmartTemplateSetupScreen() {
           </LinearGradient>
         </Pressable>
       </View>
+
+      {/* AI Loading Screen */}
+      <AILoadingScreen
+        visible={isCreating}
+        title="Creating your template..."
+        subtitle="AI is generating smart packing suggestions"
+      />
     </View>
   );
 }

@@ -21,6 +21,14 @@ import ViewTemplateScreen from '../screens/ViewTemplateScreen';
 import SmartTemplateSetupScreen from '../screens/SmartTemplateSetupScreen';
 import TravelTipsScreen from '../screens/TravelTipsScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
+import HomeScreen from '../screens/HomeScreen';
+import DreamDestinationScreen from '../screens/DreamDestinationScreen';
+import YourLikedDestinationScreen from '../screens/YourLikedDestinationScreen';
+import ItineraryScreen from '../screens/ItineraryScreen';
+import TripSummaryScreen from '../screens/TripSummaryScreen';
+import CollaborationScreen from '../screens/CollaborationScreen';
+import ShareTripScreen from '../screens/ShareTripScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 import { useUserStore } from '../state/userStore';
 
@@ -31,7 +39,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   TripSetup: { editTripId?: string; templateId?: string; createTemplate?: boolean; templateName?: string; createSmartTemplate?: boolean };
   SmartTemplateSetup: undefined;
-  QuickTripSetup: { mode: 'ongoing' | 'completed' };
+  QuickTripSetup: { mode: 'ongoing' | 'completed'; destination?: string };
   PackingList: { tripId: string };
   Journal: { tripId: string };
   AddJournalEntry: { tripId: string; entryId?: string };
@@ -41,12 +49,19 @@ export type RootStackParamList = {
   Templates: undefined;
   ViewTemplate: { templateId: string };
   TravelTips: undefined;
+  DreamDestination: undefined;
+  YourLikedDestination: { recommendations: any[] };
+  Itinerary: { tripId: string; tripName: string; destination: string; startDate: string; endDate: string };
+  TripSummary: { tripId: string };
+  Collaboration: undefined;
+  ShareTrip: { tripId: string; tripName: string };
+  EditProfile: undefined;
 };
 
 export type TabParamList = {
   MyTrips: undefined;
-  Templates: undefined;
-  TravelTips: undefined;
+  Discover: undefined;
+  Guide: undefined;
   Settings: undefined;
 };
 
@@ -62,10 +77,10 @@ function TabNavigator() {
 
           if (route.name === 'MyTrips') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
-          } else if (route.name === 'Templates') {
-            iconName = focused ? 'folder' : 'folder-outline';
-          } else if (route.name === 'TravelTips') {
-            iconName = focused ? 'bulb' : 'bulb-outline';
+          } else if (route.name === 'Discover') {
+            iconName = focused ? 'compass' : 'compass-outline';
+          } else if (route.name === 'Guide') {
+            iconName = focused ? 'map' : 'map-outline';
           } else if (route.name === 'Settings') {
             iconName = focused ? 'settings' : 'settings-outline';
           } else {
@@ -94,17 +109,17 @@ function TabNavigator() {
       <Tab.Screen 
         name="MyTrips" 
         component={MyTripsScreen} 
-        options={{ tabBarLabel: 'My Trips' }}
+        options={{ tabBarLabel: 'Trips' }}
       />
       <Tab.Screen 
-        name="Templates" 
+        name="Discover" 
+        component={HomeScreen} 
+        options={{ tabBarLabel: 'Discover' }}
+      />
+      <Tab.Screen 
+        name="Guide" 
         component={TemplatesScreen} 
-        options={{ tabBarLabel: 'Templates' }}
-      />
-      <Tab.Screen 
-        name="TravelTips" 
-        component={TravelTipsScreen} 
-        options={{ tabBarLabel: 'Tips' }}
+        options={{ tabBarLabel: 'Guide' }}
       />
       <Tab.Screen 
         name="Settings" 
@@ -173,8 +188,7 @@ export default function AppNavigator() {
               headerTitleStyle: {
                 fontSize: 18,
                 fontWeight: '600',
-              },
-              headerBackTitleVisible: false,
+              }
             }}
           />
           <Stack.Screen 
@@ -258,6 +272,48 @@ export default function AppNavigator() {
               headerShown: false,
             }}
           />
+          <Stack.Screen name="DreamDestination" component={DreamDestinationScreen} />
+          <Stack.Screen 
+            name="YourLikedDestination" 
+            component={YourLikedDestinationScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Itinerary" 
+            component={ItineraryScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="TripSummary" 
+            component={TripSummaryScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'Trip Summary',
+              headerTitleStyle: {
+                fontSize: 18,
+                fontWeight: '600',
+              },
+            }}
+          />
+          <Stack.Screen 
+            name="Collaboration" 
+            component={CollaborationScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'Shared With You',
+            }}
+          />
+          <Stack.Screen 
+            name="ShareTrip" 
+            component={ShareTripScreen}
+            options={{
+              presentation: 'modal',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
         </>
       )}
     </Stack.Navigator>

@@ -1,5 +1,7 @@
 import { Trip, SubscriptionTier } from '../types';
 import { SubscriptionService } from './subscriptionService';
+import apiService from './apiService';
+import { buildApiUrl } from '../config/api';
 
 export interface TravelTip {
   id: string;
@@ -11,6 +13,9 @@ export interface TravelTip {
   tags: string[];
   rating: number;
   usageCount: number;
+  isPremium?: boolean;
+  isDailyTip?: boolean;
+  generatedAt?: string;
 }
 
 // Basic tips for free users
@@ -50,7 +55,7 @@ const basicTips: TravelTip[] = [
     title: 'Important Documents',
     content: 'Keep copies of important documents (passport, ID, tickets) in separate locations.',
     category: 'safety',
-    isPremium: false,
+    requiredTier: 'free',
     tags: ['documents', 'safety', 'backup'],
     rating: 4.9,
     usageCount: 0,
@@ -260,7 +265,7 @@ export class TravelTipsService {
           title: 'Rainy Weather Prep',
           content: 'Pack waterproof bags for electronics, quick-dry clothing, and comfortable waterproof shoes.',
           category: 'weather',
-          isPremium: isPremium,
+          requiredTier: 'free',
           tags: ['rain', 'waterproof', 'protection'],
           rating: 4.8,
           usageCount: 0,
@@ -269,6 +274,196 @@ export class TravelTipsService {
     }
     
     return tips;
+  }
+
+  /**
+   * Get daily AI-generated travel tip from backend
+   * @param category - Optional category for the tip
+   * @param destination - Optional destination for destination-specific tips
+   * @returns Promise with the generated tip
+   */
+  async getAIDailyTip(category?: string, destination?: string): Promise<TravelTip> {
+    try {
+      const params = new URLSearchParams();
+      if (category) params.append('category', category);
+      if (destination) params.append('destination', destination);
+      
+      console.log('Fetching AI daily tip using apiService...');
+      
+      // Use the existing apiService instead of direct fetch
+      const response = await apiService.get(`/travel-tips/daily?${params.toString()}`);
+      
+      console.log('AI daily tip response:', response.data);
+      
+      if (response.data.success) {
+        return response.data.tip;
+      } else {
+        throw new Error(response.data.message || 'Failed to get daily tip');
+      }
+    } catch (error) {
+      console.error('Error getting AI daily tip:', error);
+      console.error('API URL used:', buildApiUrl('/travel-tips/daily'));
+      console.error('Full error details:', error);
+      // Fallback to static daily tip
+      return this.getDailyTip(false);
+    }
+  }
+
+  /**
+   * Get multiple AI-generated travel tips from backend
+   * @param count - Number of tips to generate
+   * @returns Promise with array of generated tips
+   */
+  async getAIMultipleTips(count: number = 5): Promise<TravelTip[]> {
+    try {
+      const response = await fetch(`${buildApiUrl('/travel-tips/multiple')}?count=${count}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        return data.tips;
+      } else {
+        throw new Error(data.message || 'Failed to get multiple tips');
+      }
+    } catch (error) {
+      console.error('Error getting AI multiple tips:', error);
+      // Fallback to static tips
+      return this.getTipsByCategory('general', false);
+    }
+  }
+
+  /**
+   * Generate a custom AI travel tip
+   * @param category - Category for the tip
+   * @param destination - Optional destination for destination-specific tips
+   * @returns Promise with the generated tip
+   */
+  async generateCustomAITip(category: string, destination?: string): Promise<TravelTip> {
+    try {
+      const response = await fetch(`${buildApiUrl('/travel-tips/generate')}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ category, destination }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        return data.tip;
+      } else {
+        throw new Error(data.message || 'Failed to generate custom tip');
+      }
+    } catch (error) {
+      console.error('Error generating custom AI tip:', error);
+      // Fallback to random static tip
+      return this.getRandomTip('free', category as any);
+    }
+  }
+
+  /**
+   * Generate a dynamic travel tip using backend AI (legacy method)
+   * @param context - Context for the tip generation
+   * @returns Promise with the generated tip
+   */
+  async generateDynamicTip(context: {
+    destination?: string;
+    packing?: string;
+    weather?: string;
+    culture?: string;
+    safety?: string;
+  }): Promise<string> {
+    try {
+      const response = await apiService.post('/packing/generate-tip', context);
+      return response.data.tip;
+    } catch (error) {
+      console.error('Error generating dynamic travel tip:', error);
+      // Fallback to a static tip if AI generation fails
+      return 'Stay safe and enjoy your travels!';
+    }
+  }
+
+  /**
+   * Submit a user travel tip for AI moderation and posting
+   * @param user - User ID
+   * @param trip - Trip ID
+   * @param content - Tip content
+   * @returns Promise with backend response (success, tip, or error)
+   */
+  async submitUserTip(user: string, trip: string | undefined, content: string) {
+    try {
+      // Always use demo user if user is not provided
+      const demoUserId = '64b7f8c2e1a2b3c4d5e6f7a8';
+      const payload: any = { user: user || demoUserId, content };
+      if (trip) payload.trip = trip;
+      const response = await apiService.post('/travel-tips/submit', payload);
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to submit tip', error: error.message };
+    }
+  }
+
+  /**
+   * Add a comment to a tip
+   */
+  async addComment(tipId: string, user: string | undefined, text: string) {
+    try {
+      const response = await apiService.post(`/travel-tips/${tipId}/comment`, { user, text });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to add comment', error: error.message };
+    }
+  }
+
+  /**
+   * Get all comments for a tip
+   */
+  async getComments(tipId: string) {
+    try {
+      const response = await apiService.get(`/travel-tips/${tipId}/comments`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to fetch comments', error: error.message };
+    }
+  }
+
+  /**
+   * Rate a tip
+   */
+  async rateTip(tipId: string, user: string | undefined, value: number) {
+    try {
+      const response = await apiService.post(`/travel-tips/${tipId}/rate`, { user, value });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to rate tip', error: error.message };
+    }
+  }
+
+  /**
+   * Report a tip
+   */
+  async reportTip(tipId: string, user: string | undefined, reason: string) {
+    try {
+      const response = await apiService.post(`/travel-tips/${tipId}/report`, { user, reason });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to report tip', error: error.message };
+    }
   }
 }
 

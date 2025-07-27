@@ -23,11 +23,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useJournalStore } from '../state/journalStore';
 import { useUserStore } from '../state/userStore';
-import { JournalEntry, JournalPhoto } from '../types';
+import { JournalEntry, JournalPhoto, JournalLocation } from '../types';
 import { cn } from '../utils/cn';
 import UpgradePrompt from '../components/UpgradePrompt';
 
@@ -62,6 +63,7 @@ const MemoryTypes: Array<{
     color: '#8B5CF6',
     description: 'Thoughts and feelings about your day',
   },
+
   {
     type: 'person',
     label: 'Person',
@@ -111,14 +113,220 @@ const MoodOptions: Array<{
   { mood: 'awful', emoji: '😔', label: 'Awful' },
 ];
 
+// OSM Search Component
+interface OSMSearchResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  type: string;
+  importance: number;
+}
+
+interface OSMSearchBarProps {
+  value: string;
+  onLocationSelect: (location: JournalLocation) => void;
+  placeholder?: string;
+}
+
+function OSMSearchBar({ value, onLocationSelect, placeholder }: OSMSearchBarProps) {
+  const [searchQuery, setSearchQuery] = useState(value);
+  const [results, setResults] = useState<OSMSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [lastSearchTime, setLastSearchTime] = useState(0);
+  const [inputLayout, setInputLayout] = useState<{ x: number; y: number; width: number; height: number }>({ x: 0, y: 0, width: 0, height: 0 });
+  const inputRef = React.useRef<any>(null);
+
+  const searchPlaces = async (query: string) => {
+    if (!query.trim() || query.length < 3) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+    const now = Date.now();
+    if (now - lastSearchTime < 1000) {
+      return;
+    }
+    setLastSearchTime(now);
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&addressdetails=1&accept-language=en`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TripWiser/1.0',
+          },
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
+      const data = await response.json();
+      setResults(Array.isArray(data) ? data : []);
+      setShowResults(true);
+    } catch (error) {
+      console.error('OSM search error:', error);
+      setResults([]);
+      setShowResults(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectLocation = (result: OSMSearchResult) => {
+    const location: JournalLocation = {
+      name: result.display_name,
+      latitude: parseFloat(result.lat),
+      longitude: parseFloat(result.lon),
+      address: result.display_name,
+    };
+    setSearchQuery(result.display_name);
+    onLocationSelect(location);
+    setShowResults(false);
+  };
+
+  const handleTextChange = (text: string) => {
+    setSearchQuery(text);
+    if (text !== value) {
+      const timeoutId = setTimeout(() => searchPlaces(text), 800);
+      return () => clearTimeout(timeoutId);
+    }
+  };
+
+  // Measure input position on focus
+  const handleInputFocus = () => {
+    if (inputRef.current) {
+      inputRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        setInputLayout({ x, y, width, height });
+        setShowResults(true);
+      });
+    } else {
+      setShowResults(true);
+    }
+  };
+
+  return (
+    <View>
+      <View
+        ref={inputRef}
+        onLayout={() => {
+          if (inputRef.current) {
+            inputRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+              setInputLayout({ x, y, width, height });
+            });
+          }
+        }}
+        className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex-row items-center"
+      >
+        <Ionicons name="location-outline" size={18} color="#4F46E5" />
+        <TextInput
+          value={searchQuery}
+          onChangeText={handleTextChange}
+          className="flex-1 ml-3 text-gray-900"
+          placeholder={placeholder || "Search for a location..."}
+          placeholderTextColor="#9CA3AF"
+          onFocus={handleInputFocus}
+          onBlur={() => { setTimeout(() => setShowResults(false), 300); }}
+        />
+        {isSearching && (
+          <Ionicons name="search" size={18} color="#9CA3AF" />
+        )}
+        {searchQuery.length > 0 && !isSearching && (
+          <Pressable
+            onPress={() => {
+              setSearchQuery('');
+              setResults([]);
+              setShowResults(false);
+            }}
+            className="ml-2"
+          >
+            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+          </Pressable>
+        )}
+      </View>
+      {/* Dropdown Modal absolutely positioned below input */}
+      <Modal
+        visible={showResults}
+        transparent
+        animationType="none"
+        onRequestClose={() => setShowResults(false)}
+      >
+        <Pressable
+          onPress={() => setShowResults(false)}
+          style={{ flex: 1 }}
+        >
+          <View
+            pointerEvents="box-none"
+            style={{
+              position: 'absolute',
+              top: inputLayout.y + inputLayout.height,
+              left: inputLayout.x,
+              width: inputLayout.width,
+              zIndex: 9999,
+            }}
+          >
+            <View
+              className="bg-white border border-gray-200 rounded-xl shadow-xl"
+              style={{ maxHeight: 200 }}
+            >
+              {results.length > 0 ? (
+                <ScrollView
+                  className="max-h-48"
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {results.map((result) => (
+                    <Pressable
+                      key={result.place_id}
+                      onPress={() => handleSelectLocation(result)}
+                      className="px-4 py-3 border-b border-gray-100 last:border-b-0 active:bg-gray-50"
+                    >
+                      <Text className="text-gray-900 font-medium text-sm" numberOfLines={1}>
+                        {result.display_name.split(',')[0]}
+                      </Text>
+                      <Text className="text-gray-500 text-xs mt-1" numberOfLines={2}>
+                        {result.display_name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : !isSearching && searchQuery.length >= 3 ? (
+                <View className="p-4">
+                  <Text className="text-gray-500 text-center mb-2">No locations found</Text>
+                  <Pressable
+                    onPress={() => {
+                      const location: JournalLocation = {
+                        name: searchQuery,
+                        latitude: 0,
+                        longitude: 0,
+                        address: searchQuery,
+                      };
+                      onLocationSelect(location);
+                      setShowResults(false);
+                    }}
+                    className="bg-indigo-500 rounded-lg py-2 px-4 items-center"
+                  >
+                    <Text className="text-white font-medium text-sm">Use as location name</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
 export default function AddJournalEntryScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp_>();
   const { tripId, entryId } = route.params;
 
-  const addEntry = useJournalStore((state) => state.addEntry);
-  const updateEntry = useJournalStore((state) => state.updateEntry);
-  const getJournal = useJournalStore((state) => state.getJournal);
+  const { addEntry, updateEntry, getJournal } = useJournalStore();
   
   const canPerformAction = useUserStore((state) => state.canPerformAction);
   const getEffectiveTier = useUserStore((state) => state.getEffectiveTier);
@@ -133,6 +341,7 @@ export default function AddJournalEntryScreen() {
     title: existingEntry?.title || '',
     content: existingEntry?.content || '',
     location: existingEntry?.location?.name || '',
+    locationData: existingEntry?.location || undefined as JournalLocation | undefined,
     date: existingEntry ? (existingEntry.date.includes('T') ? parseISO(existingEntry.date) : new Date(existingEntry.date + 'T00:00:00')) : new Date(),
     mood: existingEntry?.mood || undefined as JournalEntry['mood'],
     tags: existingEntry?.tags || [] as string[],
@@ -147,6 +356,7 @@ export default function AddJournalEntryScreen() {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   
   const currentTier = getEffectiveTier();
+  const insets = useSafeAreaInsets();
 
   const selectedMemoryType = MemoryTypes.find(type => type.type === formData.type)!;
 
@@ -162,8 +372,7 @@ export default function AddJournalEntryScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: false,
       });
@@ -193,8 +402,7 @@ export default function AddJournalEntryScreen() {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,
         quality: 0.8,
       });
 
@@ -233,9 +441,21 @@ export default function AddJournalEntryScreen() {
     }));
   };
 
-  const handleSave = async () => {
+  const handleLocationSelect = (location: JournalLocation) => {
+    setFormData(prev => ({
+      ...prev,
+      location: location.name || '',
+      locationData: location,
+    }));
+  };
+
+  const handleSave = () => {
     if (!formData.title.trim()) {
       Alert.alert('Missing Title', 'Please add a title to your journal memory');
+      return;
+    }
+    if (!formData.content.trim()) {
+      Alert.alert('Missing Content', 'Please add content to your journal memory');
       return;
     }
 
@@ -251,35 +471,27 @@ export default function AddJournalEntryScreen() {
     setIsLoading(true);
     
     try {
+      const entryData: Omit<JournalEntry, 'id' | 'createdAt' | 'tripId'> = {
+        type: formData.type,
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        location: formData.locationData || (formData.location.trim() ? { 
+          name: formData.location.trim(),
+          latitude: 0,
+          longitude: 0
+        } : undefined),
+        date: format(formData.date, 'yyyy-MM-dd'),
+        mood: formData.mood,
+        tags: formData.tags,
+        photos,
+        isPrivate: formData.isPrivate,
+        updatedAt: new Date().toISOString(),
+      };
+
       if (isEditing && entryId) {
-        // Update existing entry
-        updateEntry(tripId, entryId, {
-          type: formData.type,
-          title: formData.title.trim(),
-          content: formData.content.trim() || undefined,
-          location: formData.location.trim() ? { name: formData.location.trim() } : undefined,
-          date: format(formData.date, 'yyyy-MM-dd'),
-          mood: formData.mood,
-          tags: formData.tags,
-          photos,
-          isPrivate: formData.isPrivate,
-        });
+        updateEntry(entryId, entryData);
       } else {
-        // Add new entry
-        addEntry(tripId, {
-          tripId,
-          type: formData.type,
-          title: formData.title.trim(),
-          content: formData.content.trim() || undefined,
-          location: formData.location.trim() ? { name: formData.location.trim() } : undefined,
-          date: format(formData.date, 'yyyy-MM-dd'),
-          mood: formData.mood,
-          tags: formData.tags,
-          photos,
-          isPrivate: formData.isPrivate,
-        });
-        
-        // Increment usage for new entries
+        addEntry(tripId, { ...entryData, tripId });
         incrementUsage('journalEntries');
       }
 
@@ -300,7 +512,7 @@ export default function AddJournalEntryScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
-        <View className="bg-white border-b border-gray-100 px-6 py-4">
+        <View className="bg-white border-b border-gray-100 px-6" style={{ paddingTop: insets.top, paddingBottom: 16 }}>
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
               <Pressable 
@@ -416,7 +628,7 @@ export default function AddJournalEntryScreen() {
           </Animated.View>
 
           {/* Title (Required) */}
-          <Animated.View entering={FadeInDown.delay(200).duration(400)} className="mb-6">
+          <Animated.View entering={FadeInDown.delay(150).duration(400)} className="mb-6">
             <Text className="text-sm font-medium text-gray-700 mb-2">Title</Text>
             <TextInput
               value={formData.title}
@@ -425,6 +637,29 @@ export default function AddJournalEntryScreen() {
               placeholder={`What's your ${selectedMemoryType.label.toLowerCase()} about?`}
               placeholderTextColor="#9CA3AF"
             />
+          </Animated.View>
+
+          {/* Location with OSM Search */}
+          <Animated.View entering={FadeInDown.delay(200).duration(400)} className="mb-6">
+            <Text className="text-sm font-medium text-gray-700 mb-2">Location (Optional)</Text>
+            <OSMSearchBar
+              value={formData.location}
+              onLocationSelect={handleLocationSelect}
+              placeholder="Search for a location (e.g., Paris, Eiffel Tower)"
+            />
+            {formData.locationData && (
+              <View className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3">
+                <View className="flex-row items-center">
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Text className="text-green-800 text-sm ml-2 font-medium">
+                    Location coordinates saved
+                  </Text>
+                </View>
+                <Text className="text-green-700 text-xs mt-1">
+                  {formData.locationData.latitude.toFixed(6)}, {formData.locationData.longitude.toFixed(6)}
+                </Text>
+              </View>
+            )}
           </Animated.View>
 
           {/* Content */}
@@ -437,20 +672,23 @@ export default function AddJournalEntryScreen() {
               placeholder={selectedMemoryType.description}
               placeholderTextColor="#9CA3AF"
               multiline
-              numberOfLines={6}
+              numberOfLines={10}
+              style={{ minHeight: 160 }}
               textAlignVertical="top"
             />
           </Animated.View>
 
-          {/* Location */}
+          {/* Links (Optional) */}
           <Animated.View entering={FadeInDown.delay(300).duration(400)} className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 mb-2">Location (Optional)</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-2">Links (Optional)</Text>
             <TextInput
-              value={formData.location}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, location: text }))}
               className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900"
-              placeholder="Where are you? (e.g., Paris, Eiffel Tower)"
+              placeholder="Add any relevant links (e.g., Google Maps, booking, etc.)"
               placeholderTextColor="#9CA3AF"
+              multiline
+              numberOfLines={3}
+              style={{ minHeight: 60 }}
+              textAlignVertical="top"
             />
           </Animated.View>
 

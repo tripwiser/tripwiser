@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +26,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+import mixpanel from '../services/analytics';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -39,6 +44,8 @@ import UserSubscriptionStatus from '../components/UserSubscriptionStatus';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { useTheme } from '../theme/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -200,7 +207,13 @@ export default function SettingsScreen() {
   const { trips } = useTripStore();
   const templates = useTemplateStore((state) => state.templates);
   const importTemplate = useTemplateStore((state) => state.importTemplate);
+  const theme = useTheme();
+  const { t, i18n } = useTranslation();
   
+  React.useEffect(() => {
+    mixpanel.track('Settings Screen Viewed');
+  }, []);
+
   const handleNotificationToggle = (type: keyof typeof userStore.notifications) => {
     userStore.updatePreferences({
       notifications: {
@@ -212,52 +225,52 @@ export default function SettingsScreen() {
   
   const handleThemeChange = () => {
     Alert.alert(
-      'Theme',
-      'Choose your preferred theme',
+      t('settings.theme'),
+      t('settings.chooseTheme'),
       [
         {
-          text: 'Light',
+          text: t('settings.light'),
           onPress: () => userStore.updatePreferences({ theme: 'light' }),
         },
         {
-          text: 'Dark',
+          text: t('settings.dark'),
           onPress: () => userStore.updatePreferences({ theme: 'dark' }),
         },
         {
-          text: 'System',
+          text: t('settings.system'),
           onPress: () => userStore.updatePreferences({ theme: 'system' }),
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('settings.cancel') || 'Cancel', style: 'cancel' },
       ]
     );
   };
 
   const handleTemperatureUnitChange = () => {
     Alert.alert(
-      'Temperature Unit',
-      'Choose your preferred temperature unit',
+      t('settings.temperatureUnit'),
+      t('settings.chooseTemperatureUnit'),
       [
         {
-          text: 'Celsius (°C)',
+          text: t('settings.celsius'),
           onPress: () => userStore.updatePreferences({ temperatureUnit: 'celsius' }),
         },
         {
-          text: 'Fahrenheit (°F)',
+          text: t('settings.fahrenheit'),
           onPress: () => userStore.updatePreferences({ temperatureUnit: 'fahrenheit' }),
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
       ]
     );
   };
   
   const handleLogout = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out? You can always sign back in later.',
+      t('settings.signOut'),
+      t('settings.signOutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: t('settings.signOut'),
           style: 'destructive',
           onPress: () => {
             // Add a small delay to allow animations to complete
@@ -283,12 +296,12 @@ export default function SettingsScreen() {
 
   const handleResetData = () => {
     Alert.alert(
-      'Reset All Data',
-      'This will delete all your trips and reset the app to its initial state. This action cannot be undone.',
+      t('settings.resetData'),
+      t('settings.resetDataConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('settings.reset'),
           style: 'destructive',
           onPress: () => {
             // Reset user store
@@ -312,8 +325,6 @@ export default function SettingsScreen() {
               hasCompletedOnboarding: false,
               currentTripId: undefined,
               lastOpenedTrip: undefined,
-              freeTripCount: 0,
-              showPremiumUpsell: false,
             });
             
             Alert.alert('Data Reset', 'All data has been cleared successfully.');
@@ -339,11 +350,11 @@ export default function SettingsScreen() {
   const handleExportData = async () => {
     if (userStore.getEffectiveTier() === 'free') {
       Alert.alert(
-        'Premium Feature',
-        'Data export is a premium feature. Upgrade to Pro or Elite to export and backup your data.',
+        t('settings.premiumFeature'),
+        t('settings.exportDataPremium'),
         [
-          { text: 'Maybe Later', style: 'cancel' },
-          { text: 'Upgrade Now', onPress: () => navigation.navigate('Subscription') },
+          { text: t('settings.maybeLater'), style: 'cancel' },
+          { text: t('settings.upgradeNow'), onPress: () => navigation.navigate('Subscription') },
         ]
       );
       return;
@@ -373,11 +384,11 @@ export default function SettingsScreen() {
   const handleImportData = async () => {
     if (userStore.getEffectiveTier() === 'free') {
       Alert.alert(
-        'Premium Feature',
-        'Data import is a premium feature. Upgrade to Pro or Elite to import and restore your data.',
+        t('settings.premiumFeature'),
+        t('settings.importDataPremium'),
         [
-          { text: 'Maybe Later', style: 'cancel' },
-          { text: 'Upgrade Now', onPress: () => navigation.navigate('Subscription') },
+          { text: t('settings.maybeLater'), style: 'cancel' },
+          { text: t('settings.upgradeNow'), onPress: () => navigation.navigate('Subscription') },
         ]
       );
       return;
@@ -394,12 +405,12 @@ export default function SettingsScreen() {
         const importedData = await cloudSyncService.importUserData(fileContent);
         
         Alert.alert(
-          'Import Data',
-          `Found ${importedData.trips.length} trips and ${importedData.templates.length} templates. This will merge with your existing data.`,
+          t('settings.importData'),
+          t('settings.importDataSuccess', { trips: importedData.trips.length, templates: importedData.templates.length }),
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('settings.cancel'), style: 'cancel' },
             {
-              text: 'Import',
+              text: t('settings.import'),
               onPress: () => {
                 // Import templates
                 importedData.templates.forEach(template => {
@@ -423,11 +434,11 @@ export default function SettingsScreen() {
     
     if (!features.cloudSync) {
       Alert.alert(
-        'Premium Feature',
-        'Cloud sync requires a Pro or Elite subscription. Upgrade to sync your data across devices.',
+        t('settings.premiumFeature'),
+        t('settings.cloudSyncPremium'),
         [
-          { text: 'Maybe Later', style: 'cancel' },
-          { text: 'Upgrade Now', onPress: () => navigation.navigate('Subscription') },
+          { text: t('settings.maybeLater'), style: 'cancel' },
+          { text: t('settings.upgradeNow'), onPress: () => navigation.navigate('Subscription') },
         ]
       );
       return;
@@ -438,12 +449,12 @@ export default function SettingsScreen() {
       
       if (!syncStatus.isEnabled) {
         Alert.alert(
-          'Enable Cloud Sync',
-          'This will sync your data across all your devices. Continue?',
+          t('settings.enableCloudSync'),
+          t('settings.enableCloudSyncConfirm'),
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('settings.cancel'), style: 'cancel' },
             {
-              text: 'Enable',
+              text: t('settings.enable'),
               onPress: async () => {
                 await cloudSyncService.enableCloudSync(userStore.user?.id || 'guest', currentTier);
                 Alert.alert('Success', 'Cloud sync has been enabled!');
@@ -453,19 +464,19 @@ export default function SettingsScreen() {
         );
       } else {
         Alert.alert(
-          'Cloud Sync',
-          `Last synced: ${syncStatus.lastSyncTime ? new Date(syncStatus.lastSyncTime).toLocaleString() : 'Never'}`,
+          t('settings.cloudSync'),
+          t('settings.cloudSyncLastSync', { date: syncStatus.lastSyncTime ? new Date(syncStatus.lastSyncTime).toLocaleString() : 'Never' }),
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('settings.cancel'), style: 'cancel' },
             {
-              text: 'Sync Now',
+              text: t('settings.syncNow'),
               onPress: async () => {
                 await cloudSyncService.syncData(trips, templates, true);
                 Alert.alert('Success', 'Data synced successfully!');
               }
             },
             {
-              text: 'Disable',
+              text: t('settings.disable'),
               style: 'destructive',
               onPress: async () => {
                 await cloudSyncService.disableCloudSync();
@@ -479,457 +490,389 @@ export default function SettingsScreen() {
       Alert.alert('Error', 'Failed to manage cloud sync. Please try again.');
     }
   };
+
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const languageList = [
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Spanish' },
+    { code: 'fr', label: 'French' },
+    { code: 'de', label: 'German' },
+    { code: 'hi', label: 'Hindi' },
+    { code: 'zh', label: 'Chinese' },
+    { code: 'ja', label: 'Japanese' },
+    { code: 'ar', label: 'Arabic' },
+    { code: 'ru', label: 'Russian' },
+    { code: 'pt', label: 'Portuguese' },
+    { code: 'it', label: 'Italian' },
+    { code: 'tr', label: 'Turkish' },
+    { code: 'ko', label: 'Korean' },
+    { code: 'nl', label: 'Dutch' },
+    { code: 'pl', label: 'Polish' },
+  ];
+
+  const getLanguageDisplayName = () => {
+    switch (userStore.language) {
+      case 'en': return 'English';
+      case 'es': return 'Spanish';
+      case 'fr': return 'French';
+      case 'de': return 'German';
+      case 'hi': return 'Hindi';
+      case 'zh': return 'Chinese';
+      case 'ja': return 'Japanese';
+      case 'ar': return 'Arabic';
+      case 'ru': return 'Russian';
+      case 'pt': return 'Portuguese';
+      default: return 'English';
+    }
+  };
   
   let itemIndex = 0;
 
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['45%'], []);
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <StatusBar style="dark" />
-      
-      {/* Clean Header - Matching MyTrips Height */}
-      <SafeAreaView style={{ backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
-        <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 0 }}>
-          <Animated.View entering={FadeInDown.duration(600)}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 0 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{
-                  fontSize: 24,
-                  fontWeight: '700',
-                  color: '#111827',
-                  marginBottom: 4,
-                }}>
-                  Settings
-                </Text>
-                <Text style={{
-                  fontSize: 16,
-                  color: '#6B7280',
-                  fontWeight: '500',
-                }}>
-                  {userStore.user?.name || 'Customize your experience'}
-                </Text>
-              </View>
-              
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                {userStore.getEffectiveTier() !== 'free' && (
-                  <View style={{
-                    backgroundColor: '#4F46E5',
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 8,
-                  }}>
-                    <Text style={{
-                      color: 'white',
-                      fontWeight: '600',
-                      fontSize: 12,
-                    }}>
-                      Premium
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+          {/* Clean Header - Matching MyTrips Height */}
+          <SafeAreaView style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+            <View style={{ paddingHorizontal: 16, paddingTop: insets.top, paddingBottom: 0 }}>
+              <Animated.View entering={FadeInDown.duration(600)}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 0 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 24, fontWeight: '700', color: theme.text, marginBottom: 4 }}>
+                      {t('settings.title')}
+                    </Text>
+                    <Text style={{ fontSize: 16, color: theme.muted, fontWeight: '500' }}>
+                      {userStore.user?.name || t('settings.customizeExperience')}
                     </Text>
                   </View>
-                )}
-                
+                  
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {userStore.getEffectiveTier() !== 'free' && (
+                      <View style={{
+                        backgroundColor: '#4F46E5',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                      }}>
+                        <Text style={{
+                          color: 'white',
+                          fontWeight: '600',
+                          fontSize: 12,
+                        }}>
+                          Premium
+                        </Text>
+                      </View>
+                    )}
+                    
+                    <View style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: '#F3F4F6',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 8,
+                    }}>
+                      <Ionicons name="person" size={24} color="#6B7280" />
+                    </View>
+                  </View>
+                </View>
+              </Animated.View>
+            </View>
+          </SafeAreaView>
+          <ScrollView 
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+          >
+            {/* Account Management */}
+            <SectionHeader 
+              title={t('settings.account')}
+              subtitle={t('settings.manageProfile') || 'Manage your profile and subscription'}
+              index={0}
+            />
+            
+            <Animated.View 
+              entering={FadeInDown.delay(50).duration(400)}
+              style={{ marginHorizontal: 20, marginBottom: 16 }}
+            >
+              <UserSubscriptionStatus />
+            </Animated.View>
+            
+            <SettingItem
+              icon="diamond"
+              title={t('settings.subscription')}
+              subtitle={t('settings.currentPlan', { plan: userStore.getEffectiveTier().charAt(0).toUpperCase() + userStore.getEffectiveTier().slice(1) }) || `Current plan: ${userStore.getEffectiveTier().charAt(0).toUpperCase() + userStore.getEffectiveTier().slice(1)}`}
+              onPress={() => navigation.navigate('Subscription')}
+              rightComponent={
+                <View style={{
+                  backgroundColor: userStore.getEffectiveTier() === 'free' ? '#FEF3C7' : userStore.getEffectiveTier() === 'pro' ? '#DBEAFE' : '#F3E8FF',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                }}>
+                  <Text style={{ 
+                    color: userStore.getEffectiveTier() === 'free' ? '#92400E' : userStore.getEffectiveTier() === 'pro' ? '#1E40AF' : '#5B21B7', 
+                    fontWeight: '600', 
+                    fontSize: 12,
+                  }}>
+                    {userStore.getEffectiveTier().toUpperCase()}
+                  </Text>
+                </View>
+              }
+              index={itemIndex++}
+              isHighlight={userStore.getEffectiveTier() === 'free'}
+            />
+            
+            <SettingItem
+              icon="person"
+              title={t('settings.editProfile')}
+              subtitle={t('settings.editProfileSubtitle') || 'Update your name and personal information'}
+              onPress={() => navigation.navigate('EditProfile')}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="people"
+              title={t('settings.sharedWithYou')}
+              subtitle={t('settings.sharedWithYouSubtitle') || 'Trips and plans from your friends'}
+              onPress={() => navigation.navigate('Collaboration')}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="log-out"
+              title={t('settings.signOut')}
+              subtitle={t('settings.signOutSubtitle') || 'Sign out of your account'}
+              onPress={handleLogout}
+              index={itemIndex++}
+              isDangerous={true}
+            />
+            
+            {/* Preferences */}
+            <SectionHeader 
+              title={t('settings.preferences')}
+              subtitle={t('settings.customizeExperience') || 'Customize your experience'}
+              index={1}
+            />
+            
+            <SettingItem
+              icon="notifications"
+              title={t('settings.reminders')}
+              subtitle={t('settings.remindersSubtitle') || 'Get reminded before your departure'}
+              rightComponent={
+                <Switch
+                  value={userStore.notifications.packingReminders}
+                  onValueChange={() => handleNotificationToggle('packingReminders')}
+                  trackColor={{ false: '#E2E8F0', true: '#4F46E5' }}
+                  thumbColor={'#FFFFFF'}
+                />
+              }
+              showChevron={false}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="partly-sunny"
+              title={t('settings.weather')}
+              subtitle={t('settings.weatherSubtitle') || 'Receive weather alerts for trips'}
+              rightComponent={
+                <Switch
+                  value={userStore.notifications.weatherUpdates}
+                  onValueChange={() => handleNotificationToggle('weatherUpdates')}
+                  trackColor={{ false: '#E2E8F0', true: '#4F46E5' }}
+                  thumbColor={'#FFFFFF'}
+                />
+              }
+              showChevron={false}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="bulb"
+              title={t('settings.tips')}
+              subtitle={t('settings.tipsSubtitle') || 'Get daily packing and travel advice'}
+              rightComponent={
+                <Switch
+                  value={userStore.notifications.tipOfTheDay}
+                  onValueChange={() => handleNotificationToggle('tipOfTheDay')}
+                  trackColor={{ false: '#E2E8F0', true: '#4F46E5' }}
+                  thumbColor={'#FFFFFF'}
+                />
+              }
+              showChevron={false}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="color-palette"
+              title={t('settings.theme')}
+              subtitle={t('settings.currentTheme', { theme: getThemeDisplayName().toLowerCase() })}
+              onPress={handleThemeChange}
+              rightComponent={
+                <View style={{
+                  backgroundColor: '#EEF2FF',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                }}>
+                  <Text style={{ 
+                    color: '#4F46E5', 
+                    fontWeight: '600', 
+                    fontSize: 12,
+                  }}>
+                    {getThemeDisplayName()}
+                  </Text>
+                </View>
+              }
+              index={itemIndex++}
+            />
+            
+            {/* Language Selection */}
+            <SettingItem
+              icon="language"
+              title={t('settings.language')}
+              subtitle={t('settings.currentLanguage', { language: getLanguageDisplayName() })}
+              onPress={() => Alert.alert('Feature coming soon', 'Language selection will be available in a future update.')}
+              rightComponent={
+                <View style={{
+                  backgroundColor: '#EEF2FF',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                }}>
+                  <Text style={{ 
+                    color: '#4F46E5', 
+                    fontWeight: '600', 
+                    fontSize: 12,
+                  }}>
+                    {getLanguageDisplayName()}
+                  </Text>
+                </View>
+              }
+              index={itemIndex++}
+            />
+
+            {/* Data Management */}
+            <SectionHeader 
+              title="Data Management" 
+              subtitle="Backup, sync and import your data"
+              index={4}
+            />
+            
+            <SettingItem
+              icon="cloud"
+              title="Cloud Sync"
+              subtitle="Sync data across devices"
+              onPress={handleCloudSync}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="download" 
+              title="Export Data"
+              subtitle="Backup your trips and templates"
+              onPress={handleExportData}
+              index={itemIndex++}
+            />
+            
+            <SettingItem
+              icon="cloud-upload"
+              title="Import Data"
+              subtitle="Restore from backup file"
+              onPress={handleImportData}
+              index={itemIndex++}
+            />
+
+
+            
+            {/* Clean App Info */}
+            <Animated.View 
+              entering={FadeInUp.delay(400).duration(400)}
+              style={{ 
+                paddingHorizontal: 20, 
+                paddingVertical: 32,
+                alignItems: 'center' 
+              }}
+            >
+              <View style={{
+                alignItems: 'center',
+              }}>
                 <View style={{
                   width: 48,
                   height: 48,
-                  borderRadius: 24,
-                  backgroundColor: '#F3F4F6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 8,
+                  borderRadius: 12,
+                  marginBottom: 12,
+                  overflow: 'hidden',
                 }}>
-                  <Ionicons name="person" size={24} color="#6B7280" />
+                  <Image
+                    source={{ uri: 'https://images.composerapi.com/6120FD84-1741-41F7-9E01-59FE54810C0B.jpg' }}
+                    style={{
+                      width: 48,
+                      height: 48,
+                    }}
+                    resizeMode="contain"
+                  />
                 </View>
+                
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: theme.text,
+                  marginBottom: 4,
+                }}>
+                  Tripwiser (beta version)
+                </Text>
+                
+                <Text style={{
+                  fontSize: 14,
+                  color: theme.muted,
+                  textAlign: 'center',
+                  fontWeight: '400',
+                }}>
+                  Pack Smart & Capture the Journey
+                </Text>
               </View>
-            </View>
-          </Animated.View>
+            </Animated.View>
+          </ScrollView>
         </View>
-      </SafeAreaView>
-      
-      <ScrollView 
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
-      >
-        {/* Account Management */}
-        <SectionHeader 
-          title="Account" 
-          subtitle="Manage your profile and subscription"
-          index={0}
-        />
-        
-        <Animated.View 
-          entering={FadeInDown.delay(50).duration(400)}
-          style={{ marginHorizontal: 20, marginBottom: 16 }}
+        {/* Language Bottom Sheet */}
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={showLanguageModal ? 0 : -1}
+          snapPoints={snapPoints}
+          enablePanDownToClose
+          onClose={() => setShowLanguageModal(false)}
+          backgroundStyle={{ backgroundColor: theme.card }}
+          handleIndicatorStyle={{ backgroundColor: theme.muted }}
         >
-          <UserSubscriptionStatus />
-        </Animated.View>
-        
-        <SettingItem
-          icon="diamond"
-          title="Subscription"
-          subtitle={`Current plan: ${userStore.getEffectiveTier().charAt(0).toUpperCase() + userStore.getEffectiveTier().slice(1)}`}
-          onPress={() => navigation.navigate('Subscription')}
-          rightComponent={
-            <View style={{
-              backgroundColor: userStore.getEffectiveTier() === 'free' ? '#FEF3C7' : userStore.getEffectiveTier() === 'pro' ? '#DBEAFE' : '#F3E8FF',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 8,
-            }}>
-              <Text style={{ 
-                color: userStore.getEffectiveTier() === 'free' ? '#92400E' : userStore.getEffectiveTier() === 'pro' ? '#1E40AF' : '#5B21B7', 
-                fontWeight: '600', 
-                fontSize: 12,
-              }}>
-                {userStore.getEffectiveTier().toUpperCase()}
-              </Text>
-            </View>
-          }
-          index={itemIndex++}
-          isHighlight={userStore.getEffectiveTier() === 'free'}
-        />
-        
-        <SettingItem
-          icon="person"
-          title="Edit Profile"
-          subtitle="Update your name and personal information"
-          onPress={() => {
-            Alert.alert(
-              'Edit Profile',
-              'Profile editing is not implemented in this demo.',
-              [{ text: 'OK' }]
-            );
-          }}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="log-out"
-          title="Sign Out"
-          subtitle="Sign out of your account"
-          onPress={handleLogout}
-          index={itemIndex++}
-          isDangerous={true}
-        />
-        
-        {/* Preferences */}
-        <SectionHeader 
-          title="Preferences" 
-          subtitle="Customize your experience"
-          index={1}
-        />
-        
-        <SettingItem
-          icon="notifications"
-          title="Packing Reminders"
-          subtitle="Get reminded before your departure"
-          rightComponent={
-            <Switch
-              value={userStore.notifications.packingReminders}
-              onValueChange={() => handleNotificationToggle('packingReminders')}
-              trackColor={{ false: '#E2E8F0', true: '#4F46E5' }}
-              thumbColor={'#FFFFFF'}
-            />
-          }
-          showChevron={false}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="partly-sunny"
-          title="Weather Updates"
-          subtitle="Receive weather alerts for trips"
-          rightComponent={
-            <Switch
-              value={userStore.notifications.weatherUpdates}
-              onValueChange={() => handleNotificationToggle('weatherUpdates')}
-              trackColor={{ false: '#E2E8F0', true: '#4F46E5' }}
-              thumbColor={'#FFFFFF'}
-            />
-          }
-          showChevron={false}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="bulb"
-          title="Travel Tips"
-          subtitle="Get daily packing and travel advice"
-          rightComponent={
-            <Switch
-              value={userStore.notifications.tipOfTheDay}
-              onValueChange={() => handleNotificationToggle('tipOfTheDay')}
-              trackColor={{ false: '#E2E8F0', true: '#4F46E5' }}
-              thumbColor={'#FFFFFF'}
-            />
-          }
-          showChevron={false}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="color-palette"
-          title="App Theme"
-          subtitle={`Currently using ${getThemeDisplayName().toLowerCase()} theme`}
-          onPress={handleThemeChange}
-          rightComponent={
-            <View style={{
-              backgroundColor: '#EEF2FF',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 8,
-            }}>
-              <Text style={{ 
-                color: '#4F46E5', 
-                fontWeight: '600', 
-                fontSize: 12,
-              }}>
-                {getThemeDisplayName()}
-              </Text>
-            </View>
-          }
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="thermometer"
-          title="Temperature Unit"
-          subtitle="Preferred weather display unit"
-          onPress={handleTemperatureUnitChange}
-          rightComponent={
-            <View style={{
-              flexDirection: 'row',
-              backgroundColor: '#EEF2FF',
-              borderRadius: 16,
-              padding: 3,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: '#E0E7FF',
-              shadowColor: '#4F46E5',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.1,
-              shadowRadius: 2,
-              elevation: 1,
-            }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 16, color: theme.text, textAlign: 'center' }}>{t('settings.language')}</Text>
+          <ScrollView style={{ maxHeight: 240, width: '100%' }} contentContainerStyle={{ alignItems: 'center' }}>
+            {languageList.map(lang => (
               <Pressable
-                style={{
-                  backgroundColor: userStore.temperatureUnit === 'celsius' ? '#4F46E5' : 'transparent',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 13,
-                  minWidth: 36,
-                  alignItems: 'center',
-                  shadowColor: userStore.temperatureUnit === 'celsius' ? '#4F46E5' : 'transparent',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: userStore.temperatureUnit === 'celsius' ? 0.2 : 0,
-                  shadowRadius: 4,
-                  elevation: userStore.temperatureUnit === 'celsius' ? 2 : 0,
+                key={lang.code}
+                onPress={() => {
+                  userStore.updatePreferences({ language: lang.code });
+                  i18n.changeLanguage(lang.code);
+                  setShowLanguageModal(false);
                 }}
-                onPress={() => userStore.updatePreferences({ temperatureUnit: 'celsius' })}
+                style={{ paddingVertical: 12, width: '100%', alignItems: 'center' }}
               >
-                <Text style={{ 
-                  color: userStore.temperatureUnit === 'celsius' ? 'white' : '#6B7280', 
-                  fontWeight: userStore.temperatureUnit === 'celsius' ? '700' : '600', 
-                  fontSize: 13,
-                }}>
-                  °C
+                <Text style={{ color: userStore.language === lang.code ? theme.primary : theme.text, fontWeight: userStore.language === lang.code ? 'bold' : 'normal', fontSize: 16 }}>
+                  {lang.label}
                 </Text>
               </Pressable>
-              <Pressable
-                style={{
-                  backgroundColor: userStore.temperatureUnit === 'fahrenheit' ? '#4F46E5' : 'transparent',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 13,
-                  minWidth: 36,
-                  alignItems: 'center',
-                  shadowColor: userStore.temperatureUnit === 'fahrenheit' ? '#4F46E5' : 'transparent',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: userStore.temperatureUnit === 'fahrenheit' ? 0.2 : 0,
-                  shadowRadius: 4,
-                  elevation: userStore.temperatureUnit === 'fahrenheit' ? 2 : 0,
-                }}
-                onPress={() => userStore.updatePreferences({ temperatureUnit: 'fahrenheit' })}
-              >
-                <Text style={{ 
-                  color: userStore.temperatureUnit === 'fahrenheit' ? 'white' : '#6B7280', 
-                  fontWeight: userStore.temperatureUnit === 'fahrenheit' ? '700' : '600', 
-                  fontSize: 13,
-                }}>
-                  °F
-                </Text>
-              </Pressable>
-            </View>
-          }
-          showChevron={false}
-          index={itemIndex++}
-        />
-        
-        {/* Support & Help */}
-        <SectionHeader 
-          title="Support" 
-          subtitle="Get help when you need it"
-          index={2}
-        />
-        
-        <SettingItem
-          icon="help-circle"
-          title="Help & FAQ"
-          subtitle="Find answers to common questions"
-          onPress={() => {
-            Alert.alert(
-              'Help & FAQ',
-              'This would open the help center in a real app.',
-              [{ text: 'OK' }]
-            );
-          }}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="mail"
-          title="Contact Support"
-          subtitle="Get help from our friendly team"
-          onPress={() => {
-            Alert.alert(
-              'Contact Support',
-              'This would open the contact form in a real app.',
-              [{ text: 'OK' }]
-            );
-          }}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="heart"
-          title="Rate TripKit"
-          subtitle="Love the app? Share your experience"
-          onPress={() => {
-            Alert.alert(
-              'Rate TripKit',
-              'Thanks for considering rating our app! This would open the App Store in a real app.',
-              [{ text: 'OK' }]
-            );
-          }}
-          index={itemIndex++}
-        />
-        
-        {/* Legal & Privacy */}
-        <SectionHeader 
-          title="Legal" 
-          subtitle="Privacy and terms information"
-          index={3}
-        />
-        
-        <SettingItem
-          icon="shield-checkmark"
-          title="Privacy Policy"
-          subtitle="How we protect your information"
-          onPress={() => {
-            Alert.alert(
-              'Privacy Policy',
-              'This would open the privacy policy in a real app.',
-              [{ text: 'OK' }]
-            );
-          }}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="document-text"
-          title="Terms of Service"
-          subtitle="Our terms and conditions"
-          onPress={() => {
-            Alert.alert(
-              'Terms of Service',
-              'This would open the terms of service in a real app.',
-              [{ text: 'OK' }]
-            );
-          }}
-          index={itemIndex++}
-        />
-        
-        {/* Data Management */}
-        <SectionHeader 
-          title="Data Management" 
-          subtitle="Backup, sync and import your data"
-          index={4}
-        />
-        
-        <SettingItem
-          icon="cloud"
-          title="Cloud Sync"
-          subtitle="Sync data across devices"
-          onPress={handleCloudSync}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="download" 
-          title="Export Data"
-          subtitle="Backup your trips and templates"
-          onPress={handleExportData}
-          index={itemIndex++}
-        />
-        
-        <SettingItem
-          icon="cloud-upload"
-          title="Import Data"
-          subtitle="Restore from backup file"
-          onPress={handleImportData}
-          index={itemIndex++}
-        />
-
-
-        
-        {/* Clean App Info */}
-        <Animated.View 
-          entering={FadeInUp.delay(400).duration(400)}
-          style={{ 
-            paddingHorizontal: 20, 
-            paddingVertical: 32,
-            alignItems: 'center' 
-          }}
-        >
-          <View style={{
-            alignItems: 'center',
-          }}>
-            <View style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              marginBottom: 12,
-              overflow: 'hidden',
-            }}>
-              <Image
-                source={{ uri: 'https://images.composerapi.com/6120FD84-1741-41F7-9E01-59FE54810C0B.jpg' }}
-                style={{
-                  width: 48,
-                  height: 48,
-                }}
-                resizeMode="contain"
-              />
-            </View>
-            
-            <Text style={{
-              fontSize: 18,
-              fontWeight: '700',
-              color: '#0F172A',
-              marginBottom: 4,
-            }}>
-              TripKit v1.0.0
-            </Text>
-            
-            <Text style={{
-              fontSize: 14,
-              color: '#64748B',
-              textAlign: 'center',
-              fontWeight: '400',
-            }}>
-              Pack Smart & Capture the Journey
-            </Text>
-          </View>
-        </Animated.View>
-      </ScrollView>
-    </View>
+            ))}
+          </ScrollView>
+          <Pressable onPress={() => setShowLanguageModal(false)} style={{ marginTop: 16 }}>
+            <Text style={{ color: theme.primary, textAlign: 'center', fontWeight: '600' }}>{t('settings.cancel') || 'Cancel'}</Text>
+          </Pressable>
+        </BottomSheet>
+      </>
+    </GestureHandlerRootView>
   );
 }

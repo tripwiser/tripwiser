@@ -25,6 +25,7 @@ export interface WeatherData {
 }
 
 export interface Trip {
+  _id?: string; // MongoDB ObjectId, optional for frontend compatibility
   id: string;
   name: string;
   destination: string;
@@ -37,6 +38,7 @@ export interface Trip {
   additionalInfo?: string;
   packingList: PackingItem[];
   weather?: WeatherData;
+  collaborators?: { name: string; email: string; permission: 'view' | 'edit' }[];
   createdAt: string;
   updatedAt: string;
   completed: boolean;
@@ -92,6 +94,7 @@ export interface UserPreferences {
     travelers: number;
     preferredActivities: string[];
   };
+  language?: string; // e.g., 'en', 'es', 'fr', etc.
 }
 
 export interface AppState {
@@ -180,6 +183,7 @@ export interface JournalPhoto {
 }
 
 export interface JournalEntry {
+  _id?: string; // MongoDB ObjectId, optional for frontend compatibility
   id: string;
   tripId: string;
   date: string;

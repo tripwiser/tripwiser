@@ -24,6 +24,7 @@ import Animated, {
 import { SubscriptionTier } from '../types';
 import { useUserStore } from '../state/userStore';
 import { SUBSCRIPTION_PRICING } from '../services/subscriptionService';
+import { useTheme } from '../theme/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -443,6 +444,7 @@ export default function SubscriptionScreen() {
   const { getEffectiveTier, upgradeSubscription } = useUserStore();
   const [isYearly, setIsYearly] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'pro' | 'elite'>('pro');
+  const theme = useTheme();
   
   const currentTier = getEffectiveTier();
 

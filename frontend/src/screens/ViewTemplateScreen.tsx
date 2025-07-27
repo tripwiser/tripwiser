@@ -19,6 +19,7 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTemplateStore } from '../state/templateStore';
 import { PackingItem } from '../types';
+import { useTheme } from '../theme/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'ViewTemplate'>;
@@ -243,6 +244,7 @@ export default function ViewTemplateScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp_>();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   
   const { templateId } = route.params;
   const { getTemplate, incrementUsage, duplicateTemplate } = useTemplateStore();

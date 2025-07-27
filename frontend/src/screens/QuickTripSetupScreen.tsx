@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,9 @@ import { useTripStore } from '../state/tripStore';
 import { useUserStore } from '../state/userStore';
 import { cn } from '../utils/cn';
 import { generatePackingList } from '../services/packingService';
+import AILoadingScreen from '../components/AILoadingScreen';
+import popularDestinations from '../data/popularDestinations.json';
+import { scheduleTripReminder, schedulePackingReminder, scheduleWeatherAlert } from '../services/notificationService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'QuickTripSetup'>;
@@ -44,14 +47,60 @@ export default function QuickTripSetupScreen() {
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
-    startDate: mode === 'ongoing' ? new Date() : null as Date | null,
-    endDate: mode === 'ongoing' ? new Date() : null as Date | null,
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default to 7 days from now
     tripType: 'other' as 'beach' | 'hiking' | 'business' | 'family' | 'other',
   });
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  // Function to get auto-complete suggestions
+  const getSuggestions = (searchText: string): string[] => {
+    if (!searchText.trim()) {
+      return [];
+    }
+
+    const searchLower = searchText.toLowerCase();
+    const results: string[] = [];
+
+    // Search through countries and cities
+    Object.entries(popularDestinations).forEach(([country, cities]) => {
+      // Check if country matches
+      if (country.toLowerCase().includes(searchLower)) {
+        results.push(country);
+      }
+      
+      // Check if any city matches
+      cities.forEach(city => {
+        if (city.toLowerCase().includes(searchLower)) {
+          results.push(`${city}, ${country}`);
+        }
+      });
+    });
+
+    // Return top 5 unique matches
+    return [...new Set(results)].slice(0, 5);
+  };
+
+  // Function to handle destination input with auto-complete
+  const handleDestinationChange = (text: string) => {
+    setFormData(prev => ({ ...prev, destination: text }));
+    
+    // Get suggestions for auto-complete
+    const newSuggestions = getSuggestions(text);
+    setSuggestions(newSuggestions);
+  };
+
+  // Function to apply auto-complete
+  const applyAutoComplete = () => {
+    if (suggestions.length > 0) {
+      setFormData(prev => ({ ...prev, destination: suggestions[0] }));
+      setSuggestions([]);
+    }
+  };
 
   const validateForm = () => {
     if (!formData.name.trim()) {
@@ -89,6 +138,13 @@ export default function QuickTripSetupScreen() {
           return;
       }
 
+      console.log('Form data before API call:', {
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startDateType: typeof formData.startDate,
+        endDateType: typeof formData.endDate
+      });
+
       const tripDetails = {
         destination: formData.destination.trim(),
         startDate: formData.startDate.toISOString(),
@@ -97,8 +153,17 @@ export default function QuickTripSetupScreen() {
         specialRequests: '' // You can add a field for this in the UI if needed
       };
 
+      console.log('Trip details being sent to API:', tripDetails);
+
       // Generate the packing list via the backend
       const newPackingList = await generatePackingList(tripDetails);
+      // Schedule trip and packing reminders
+      await scheduleTripReminder(formData.name, formData.destination, formData.startDate.toISOString());
+      await schedulePackingReminder(formData.name, formData.destination, formData.startDate.toISOString());
+      // If weather info is available and has alert
+      if (newPackingList.weather && newPackingList.weather.description && (newPackingList.weather.description.toLowerCase().includes('rain') || newPackingList.weather.description.toLowerCase().includes('snow'))) {
+        await scheduleWeatherAlert(formData.destination, formData.startDate.toISOString(), newPackingList.weather.description);
+      }
 
       if (currentTier === 'free') {
         incrementUsage('tripsCreated');
@@ -121,6 +186,19 @@ export default function QuickTripSetupScreen() {
       setIsLoading(false);
     }
   };
+
+  // Clear suggestions when component unmounts
+  useEffect(() => {
+    return () => {
+      setSuggestions([]);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (route.params.destination) {
+      setFormData(prev => ({ ...prev, destination: route.params.destination || '' }));
+    }
+  }, [route.params.destination]);
 
   const title = mode === 'ongoing' ? 'Current Trip' : 'Past Trip';
 
@@ -178,16 +256,53 @@ export default function QuickTripSetupScreen() {
               {mode === 'completed' ? 'Tell us where you went' : 'Tell us your destination'}
             </Text>
             
-            <View className="bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 flex-row items-center">
-              <Ionicons name="location" size={18} color="#9CA3AF" />
-              <TextInput
-                value={formData.destination}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, destination: text }))}
-                className="flex-1 ml-3 text-gray-900"
-                placeholder="Paris, France"
-                placeholderTextColor="#9CA3AF"
-                style={{ fontSize: 16 }}
-              />
+            <View className="relative">
+              <View className="bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 flex-row items-center">
+                <Ionicons name="location" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={formData.destination}
+                  onChangeText={handleDestinationChange}
+                  onSubmitEditing={applyAutoComplete}
+                  className="flex-1 ml-3 text-gray-900"
+                  placeholder="Start typing a city or country..."
+                  placeholderTextColor="#9CA3AF"
+                  style={{ fontSize: 16 }}
+                />
+                {suggestions.length > 0 && (
+                  <Pressable
+                    onPress={applyAutoComplete}
+                    style={{
+                      padding: 8,
+                      backgroundColor: '#4F46E5',
+                      borderRadius: 6,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: 'white' }}>✓</Text>
+                  </Pressable>
+                )}
+              </View>
+              
+              {/* Auto-complete suggestion */}
+              {suggestions.length > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: '#F3F4F6',
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  marginTop: 4,
+                  padding: 8,
+                  zIndex: 1000,
+                }}>
+                  <Text style={{ color: '#6B7280', fontSize: 14 }}>
+                    Press Enter or tap ✓ to complete: <Text style={{ color: '#4F46E5', fontWeight: '600' }}>{suggestions[0]}</Text>
+                  </Text>
+                </View>
+              )}
             </View>
           </Animated.View>
 
@@ -301,7 +416,7 @@ export default function QuickTripSetupScreen() {
                   fontWeight: '600',
                   fontSize: 16,
                 }}>
-                  {isLoading ? 'Creating...' : 'Start Journaling'}
+                  {isLoading ? 'Creating...' : 'Create Trip & Start Packing'}
                 </Text>
               </LinearGradient>
             </Pressable>
@@ -463,6 +578,13 @@ export default function QuickTripSetupScreen() {
             )}
           </>
         )}
+
+        {/* AI Loading Screen */}
+        <AILoadingScreen
+          visible={isLoading}
+          title="Creating your trip..."
+          subtitle="AI is generating your perfect packing list"
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

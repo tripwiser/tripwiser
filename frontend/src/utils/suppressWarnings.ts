@@ -68,6 +68,7 @@ if (__DEV__) {
     (global as any).__reanimatedLoggerConfig = {
       strict: false,
       level: 'warn',
+      logFunction: (...args: any[]) => { console.log(...args); }, // Added to prevent missing logFunction error
     };
 
     // Try direct require approach
