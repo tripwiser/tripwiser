@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 
 import { useUserStore } from '../state/userStore';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -90,6 +91,7 @@ const onboardingSlides: OnboardingSlide[] = [
 ];
 
 export default function OnboardingScreen() {
+  const theme = useTheme();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -1078,7 +1080,7 @@ export default function OnboardingScreen() {
   return (
     <Animated.View style={{ 
       flex: 1, 
-      backgroundColor,
+      backgroundColor: theme.background,
       opacity: fadeAnim,
     }}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />

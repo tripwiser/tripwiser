@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,11 +35,13 @@ import { useUserStore } from '../state/userStore';
 import { Trip } from '../types';
 import { cn } from '../utils/cn';
 import { getTemperatureDisplayValue } from '../utils/temperature';
-import AdBanner from '../components/AdBanner';
+// import AdBanner from '../components/AdBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
 import TrendingDestinations from '../components/TrendingDestinations';
 import PersonalizedSuggestion from '../components/PersonalizedSuggestion';
 import { getTrendingDestinations, getPersonalizedSuggestion, postDestinationFeedback } from '../services/apiService';
+import { useTheme } from '../theme/ThemeContext';
+import mixpanel from '../services/analytics';
 
 interface Destination {
   id: string;
@@ -61,19 +63,17 @@ interface TripCardProps {
   onLongPress: () => void;
   onDelete: () => void;
   onDirectDelete: () => void;
+  onShare: () => void;
   index: number;
 }
 
-const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDelete, onDirectDelete, index }: TripCardProps) {
+const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDelete, onDirectDelete, onShare, index }: TripCardProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>(); // Typed navigation
-  const getPackingProgress = useTripStore((state) => state.getPackingProgress);
   const temperatureUnit = useUserStore((state) => state.temperatureUnit);
-  const progress = getPackingProgress(trip.id);
-  const scale = useSharedValue(1);
+  const hasSwipedRef = useRef(false);
+  const isDeleting = useRef(false);
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
-  const isDeleting = useRef(false);
-  const hasSwipedRef = useRef(false);
   
   const daysUntilTrip = differenceInDays(new Date(trip.startDate), new Date());
   const daysUntilEnd = differenceInDays(new Date(trip.endDate), new Date());
@@ -106,30 +106,8 @@ const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDe
   };
   
   const getStatusColors = () => {
-    const today = new Date();
-    const startDate = new Date(trip.startDate);
-    const endDate = new Date(trip.endDate);
-    
-    // Set times to compare dates only
-    today.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    
-    if (today < startDate) {
-      // Future trip
-      const daysToGo = differenceInDays(startDate, today);
-      if (daysToGo > 7) return ['#4F46E5', '#6366F1']; // Indigo for future trips (>7 days)
-      return ['#F59E0B', '#D97706']; // Orange for upcoming trips (≤7 days)
-    } else if (today.getTime() === startDate.getTime()) {
-      // Trip starts today
-      return ['#10B981', '#059669']; // Green for today
-    } else if (today > startDate && today <= endDate) {
-      // Trip is ongoing
-      return ['#10B981', '#059669']; // Green for ongoing trips
-    } else {
-      // Trip completed
-      return ['#6B7280', '#4B5563']; // Grey for completed trips
-    }
+    // All cards use white background now
+    return ['#fff', '#fff'];
   };
   
   const getProgressColors = () => {
@@ -137,16 +115,16 @@ const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDe
   };
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }, { translateX: translateX.value }],
-    opacity: opacity.value,
+    transform: [{ scale: 1 }, { translateX: 0 }], // Removed scale and translateX
+    opacity: 1, // Removed opacity
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.98);
+    // Removed scale animation
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1);
+    // Removed scale animation
   };
 
   const confirmDelete = () => {
@@ -229,7 +207,7 @@ const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDe
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 80).duration(500)}
-      className="mx-4 mb-6"
+      style={{marginHorizontal:16, marginBottom:16}}
     >
       <PanGestureHandler
         onGestureEvent={onPanGestureEvent}
@@ -246,115 +224,64 @@ const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDe
             className="overflow-hidden"
           >
             {/* Modern Card Design */}
-            <View className="bg-white rounded-3xl overflow-hidden shadow-lg shadow-black/8 border border-gray-100/50">
-              {/* Gradient Header */}
-              <LinearGradient
-                colors={getStatusColors() as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="px-6 py-5"
-              >
-                <View className="flex-row justify-between items-start">
-                  <View className="flex-1 mr-4">
-                    <Text className="text-2xl font-bold text-white mb-2" numberOfLines={1}>
-                      {trip.name}
-                    </Text>
-                    <View className="flex-row items-center mb-3">
-                      <Ionicons name="location" size={16} color="rgba(255,255,255,0.9)" />
-                      <Text className="text-white/90 ml-2 font-medium text-base" numberOfLines={1}>
-                        {trip.destination}
-                      </Text>
+            <View style={{backgroundColor:'#FAFAFA', borderRadius:16, borderWidth:1, borderColor:'#F3F4F6', shadowColor:'#000', shadowOpacity:0.04, shadowRadius:4, shadowOffset:{width:0, height:1}, marginBottom:0, overflow:'hidden'}}>
+              {/* Header Section */}
+              <View style={{paddingHorizontal:12, paddingTop:10, paddingBottom:8, flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start'}}>
+                <View style={{flex:1, marginRight:8}}>
+                  <Text style={{fontSize:18, fontWeight:'700', color:'#111827', marginBottom:2}} numberOfLines={1}>{trip.name}</Text>
+                  <View style={{flexDirection:'row', alignItems:'center', marginBottom:0}}>
+                    <Ionicons name="location" size={12} color="#4B5563" />
+                    <Text style={{color:'#4B5563', marginLeft:2, fontWeight:'500', fontSize:12}} numberOfLines={1}>{trip.destination}</Text>
                     </View>
-                    
-                    {/* Date Range */}
-                    <View className="flex-row items-center">
-                      <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.8)" />
-                      <Text className="text-white/80 ml-2 font-medium text-sm">
-                        {format(new Date(trip.startDate), 'MMM d')} - {format(new Date(trip.endDate), 'MMM d, yyyy')}
-                      </Text>
+                  <View style={{flexDirection:'row', alignItems:'center', marginTop:6}}>
+                    <Ionicons name="calendar-outline" size={12} color="#4B5563" />
+                    <Text style={{color:'#4B5563', marginLeft:2, fontWeight:'500', fontSize:12}}>
+                      {trip.startDate && !isNaN(new Date(trip.startDate)) && trip.endDate && !isNaN(new Date(trip.endDate))
+                        ? `${format(new Date(trip.startDate), 'MMM d')} - ${format(new Date(trip.endDate), 'MMM d, yyyy')}`
+                        : 'Unknown'}
+                    </Text>
                     </View>
                   </View>
-                  
-                  {/* Status Badge */}
-                  <View className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-2xl">
-                    <Text className="text-white font-bold text-sm">
-                      {getTripStatus()}
-                    </Text>
+                  {/* Status Badge & Share Button */}
+                <View style={{ alignItems: 'flex-end', marginTop: 12 }}>
+                  <View style={{backgroundColor: getStatusBadgeColor(trip), paddingHorizontal:10, paddingVertical:4, borderRadius:12, alignSelf:'flex-start', minWidth:0}}>
+                    <Text style={{color:'#15803d', fontWeight:'600', fontSize:10}} numberOfLines={1}>{getTripStatus()}</Text>
                   </View>
+                  <TouchableOpacity onPress={onShare} style={{ marginTop: 8 }}>
+                    <Ionicons name="share-social-outline" size={22} color="#6366F1" />
+                  </TouchableOpacity>
                 </View>
-              </LinearGradient>
-              
+              </View>
               {/* Content Section */}
-              <View className="p-6">
-                {/* Progress Section */}
-                <View className="mb-6">
-                  <View className="flex-row items-center justify-between mb-3">
-                    <Text className="text-gray-800 font-bold text-lg">Packing Progress</Text>
-                    <View className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-full">
-                      <Text className="text-gray-900 font-bold text-sm mr-2">
-                        {trip.completed && progress.total === 0 ? "Complete" : `${progress.packed}/${progress.total}`}
-                      </Text>
-                      <Ionicons 
-                        name={progress.percentage === 100 ? "checkmark-circle" : "list-outline"} 
-                        size={16} 
-                        color={progress.percentage === 100 ? "#10B981" : "#6B7280"} 
-                      />
-                    </View>
+              {/* Packing Progress and Weather Section - white background fills card bottom */}
+              <View style={{backgroundColor:'#fff', borderColor:'#fff', borderWidth:1, borderRadius:0, alignSelf:'stretch', marginHorizontal:-12, padding:10, borderBottomLeftRadius:16, borderBottomRightRadius:16}}>
+                {/* Packing Progress */}
+                <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:4, paddingHorizontal:12}}>
+                  <Text style={{color:'#111827', fontWeight:'bold', fontSize:13}}>Packing Progress</Text>
+                  <View style={{flexDirection:'row', alignItems:'center', backgroundColor:'#fff', paddingHorizontal:7, paddingVertical:2, borderRadius:8}}>
+                    <Text style={{color:'#111827', fontWeight:'bold', fontSize:11, marginRight:4}}>{trip.completed ? "Complete" : "In Progress"}</Text>
+                    <Ionicons name={trip.completed ? "checkmark-circle" : "list-outline"} size={13} color={trip.completed ? "#10B981" : "#6B7280"} />
                   </View>
-                  
-                  {/* Modern Progress Bar */}
-                  <View className="bg-gray-100 rounded-full h-3 overflow-hidden">
-                    <Animated.View
-                      entering={FadeInRight.delay(index * 80 + 200).duration(600)}
-                      className="h-full rounded-full"
-                      style={{ 
-                        width: `${progress.percentage}%`,
-                        backgroundColor: '#4F46E5'
-                      }}
-                    />
-                  </View>
-                  
-                  <Text className="text-gray-500 text-sm mt-2 font-medium">
-                    {progress.percentage}% complete
-                    {progress.percentage === 100 && " 🎉"}
-                  </Text>
                 </View>
-                
-                {/* Weather Section */}
+                {/* Progress Bar */}
+                <View style={{backgroundColor:'#E5E7EB', borderRadius:6, height:4, overflow:'hidden', marginHorizontal:12}}>
+                  <Animated.View
+                    entering={FadeInRight.delay(index * 80 + 200).duration(600)}
+                    style={{height:4, borderRadius:6, width:`${trip.completed ? 100 : 0}%`, backgroundColor:'#6366F1'}}
+                  />
+                </View>
+                {/* Progress Text */}
+                <Text style={{color:'#6B7280', fontSize:10, marginTop:2, fontWeight:'500', paddingHorizontal:12}}>{trip.completed ? "100%" : "0%"} complete</Text>
+                {/* Weather Section inside white background */}
                 {trip.weather && (
-                  <View className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100/50">
-                    <View className="flex-row items-center">
-                      <Text className="text-3xl mr-4">{trip.weather.icon}</Text>
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-bold text-lg">
-                          {getTemperatureDisplayValue(trip.weather.temperature.min, temperatureUnit).value}{getTemperatureDisplayValue(trip.weather.temperature.min, temperatureUnit).unit} - {getTemperatureDisplayValue(trip.weather.temperature.max, temperatureUnit).value}{getTemperatureDisplayValue(trip.weather.temperature.max, temperatureUnit).unit}
-                        </Text>
-                        <Text className="text-gray-600 text-sm font-medium" numberOfLines={1}>
-                          {trip.weather.description}
-                        </Text>
-                      </View>
+                  <View style={{backgroundColor:'#F9FAFB', borderRadius:10, padding:12, borderWidth:1, borderColor:'#F1F5F9', flexDirection:'row', alignItems:'center', marginTop:8, marginBottom:0, paddingHorizontal:12, marginHorizontal:12}}>
+                    <Text style={{fontSize:18, marginRight:8}}>{trip.weather.icon}</Text>
+                    <View style={{flex:1}}>
+                      <Text style={{color:'#111827', fontWeight:'bold', fontSize:12}}>{getTemperatureDisplayValue(trip.weather.temperature.min, temperatureUnit).value}{getTemperatureDisplayValue(trip.weather.temperature.min, temperatureUnit).unit} - {getTemperatureDisplayValue(trip.weather.temperature.max, temperatureUnit).value}{getTemperatureDisplayValue(trip.weather.temperature.max, temperatureUnit).unit}</Text>
+                      <Text style={{color:'#6B7280', fontSize:10, fontWeight:'500'}} numberOfLines={1}>{trip.weather.description}</Text>
                     </View>
                   </View>
                 )}
-                
-                {/* Action Button */}
-                <Pressable
-                  onPress={() => {
-                    navigation.navigate('Itinerary', {
-                      tripId: trip.id,
-                      tripName: trip.name,
-                      destination: trip.destination,
-                      startDate: trip.startDate,
-                      endDate: trip.endDate,
-                    });
-                  }}
-                  className="mt-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl py-4 px-6"
-                >
-                  <View className="flex-row items-center justify-center">
-                    <Ionicons name="map-outline" size={20} color="white" />
-                    <Text className="text-white font-bold text-base ml-2">Create Itinerary</Text>
-                  </View>
-                </Pressable>
               </View>
             </View>
           </Pressable>
@@ -364,14 +291,55 @@ const TripCard = React.memo(function TripCard({ trip, onPress, onLongPress, onDe
   );
 });
 
+function getStatusBadgeColor(trip: Trip) {
+  const today = new Date();
+  const startDate = new Date(trip.startDate);
+  const endDate = new Date(trip.endDate);
+  today.setHours(0,0,0,0);
+  startDate.setHours(0,0,0,0);
+  endDate.setHours(0,0,0,0);
+  if (today < startDate) {
+    const daysToGo = Math.floor((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysToGo > 7) return '#EEF2FF'; // Light indigo for far future
+    return '#F3F4F6'; // Neutral for upcoming
+  } else if (today.getTime() === startDate.getTime()) {
+    return '#D1FAE5'; // Mint for today
+  } else if (today > startDate && today <= endDate) {
+    return '#D1FAE5'; // Mint for ongoing
+  } else {
+    return '#DBEAFE'; // Light blue for completed
+  }
+}
+function getStatusBadgeTextColor(trip: Trip) {
+  const today = new Date();
+  const startDate = new Date(trip.startDate);
+  const endDate = new Date(trip.endDate);
+  today.setHours(0,0,0,0);
+  startDate.setHours(0,0,0,0);
+  endDate.setHours(0,0,0,0);
+  if (today < startDate) {
+    const daysToGo = Math.floor((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysToGo > 7) return '#4F46E5'; // Indigo for far future
+    return '#6B7280'; // Gray for upcoming
+  } else if (today.getTime() === startDate.getTime()) {
+    return '#10B981'; // Green for today
+  } else if (today > startDate && today <= endDate) {
+    return '#10B981'; // Green for ongoing
+  } else {
+    return '#2563EB'; // Blue for completed
+  }
+}
+
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MENU_WIDTH = 280;
 
 export default function MyTripsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   
   const trips = useTripStore((state) => state.trips);
+  console.log('Trips in MyTripsScreen:', trips);
   const deleteTrip = useTripStore((state) => state.deleteTrip);
   const canPerformAction = useUserStore((state) => state.canPerformAction);
   const getEffectiveTier = useUserStore((state) => state.getEffectiveTier);
@@ -394,6 +362,7 @@ export default function MyTripsScreen() {
   const cardRefs = useRef<{ [tripId: string]: View | null }>({});
 
   React.useEffect(() => {
+    mixpanel.track('MyTrips Screen Viewed');
     setLoadingTrending(true);
     getTrendingDestinations()
       .then(data => setTrending(data.trending))
@@ -406,16 +375,15 @@ export default function MyTripsScreen() {
       .finally(() => setLoadingSuggestion(false));
   }, []);
 
-  const handleLike = async () => {
-    if (!suggestion) return;
-    await postDestinationFeedback(suggestion.id, 'like');
-    setFeedbackSent(true);
-  };
-  const handleDislike = async () => {
-    if (!suggestion) return;
-    await postDestinationFeedback(suggestion.id, 'dislike');
-    setFeedbackSent(true);
-  };
+  // Always refresh trips when screen is focused
+  // No longer needed with persistent store
+  /*
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchTrips();
+    }, [fetchTrips])
+  );
+  */
   
   const currentTier = getEffectiveTier();
   
@@ -495,6 +463,13 @@ export default function MyTripsScreen() {
     );
   };
   
+  const handleShareTrip = (trip: Trip) => {
+    navigation.navigate('ShareTrip', {
+      tripId: trip.id,
+      tripName: trip.name,
+    });
+  };
+
   const showMenu = (trip: Trip) => {
     const ref = cardRefs.current[trip.id];
     if (ref) {
@@ -620,15 +595,15 @@ export default function MyTripsScreen() {
       
       {/* Header */}
       <SafeAreaView className="bg-white border-b border-gray-100">
-        <View className="px-4 pt-2 pb-0">
+        <View style={{ paddingTop: insets.top, paddingHorizontal: 16, paddingBottom: 0 }}>
           <Animated.View entering={FadeInDown.duration(600)}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 0 }}>
               <View style={{ flex: 1 }}>
                 <Text className="text-2xl font-bold text-gray-900 mb-1">My Trips</Text>
-                <Text className="text-gray-600 text-base">
+                <Text style={{color:'#6B7280', fontSize:13, paddingBottom:32}}>
                   {sortedTrips.length === 0 
                     ? 'Time to plan your first journey' 
-                    : `${sortedTrips.length} trip${sortedTrips.length === 1 ? '' : 's'} • Pack Smart & Capture the Journey.`
+                    : `${sortedTrips.length} trip${sortedTrips.length === 1 ? '' : 's'} • Plan. Pack. Collab. Journal. Share.`
                   }
                 </Text>
               </View>
@@ -649,7 +624,7 @@ export default function MyTripsScreen() {
       {/* Content */}
       <ScrollView 
         className="flex-1" 
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{ paddingTop: 32, paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
 
@@ -674,9 +649,9 @@ export default function MyTripsScreen() {
         ) : (
           <>
             {sortedTrips.map((trip, index) => (
-              <React.Fragment key={trip.id}>
+              <React.Fragment key={trip._id || trip.id || index}>
                 <View
-                  ref={ref => { cardRefs.current[trip.id] = ref; }}
+                  ref={ref => { cardRefs.current[trip._id || trip.id] = ref; }}
                   collapsable={false}
                 >
                   <TripCard
@@ -684,16 +659,14 @@ export default function MyTripsScreen() {
                     onPress={() => handleTripPress(trip)}
                     onLongPress={() => handleTripLongPress(trip)}
                     onDelete={() => handleTripDelete(trip)}
-                    onDirectDelete={() => deleteTrip(trip.id)}
+                    onDirectDelete={() => deleteTrip(trip._id || trip.id)}
+                    onShare={() => handleShareTrip(trip)}
                     index={index}
                   />
                 </View>
                 {/* Show ad after second trip for free users */}
                 {currentTier === 'free' && index === 1 && (
-                  <AdBanner 
-                    category="travel" 
-                    style="banner"
-                  />
+                  null
                 )}
               </React.Fragment>
             ))}
@@ -829,7 +802,7 @@ export default function MyTripsScreen() {
               }}>
                 <Ionicons name="add" size={16} color="white" />
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>New Trip</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>Upcoming</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -856,7 +829,7 @@ export default function MyTripsScreen() {
               }}>
                 <Ionicons name="airplane" size={16} color="white" />
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>On Trip</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>Ongoing</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -882,7 +855,7 @@ export default function MyTripsScreen() {
               }}>
                 <Ionicons name="checkmark-circle" size={16} color="white" />
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>Completed Trip</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>Completed</Text>
             </Pressable>
           </View>
         </View>
@@ -890,16 +863,14 @@ export default function MyTripsScreen() {
 
       {/* Modern Trip Options Menu */}
       {menuVisible && menuPosition && (
-        <View style={[
-          styles.popoverMenu,
-          {
+        <View style={{
             position: 'absolute',
-            top: menuPosition.y + 100,
-            left: menuPosition.x + (menuPosition.width / 2) - (MENU_WIDTH / 2),
+          top: '50%',
+          left: '50%',
             width: MENU_WIDTH,
+          transform: [{ translateX: -MENU_WIDTH / 2 }, { translateY: -180 }],
             zIndex: 9999,
-          },
-        ]}>
+        }}>
           <View style={[styles.modalContainer, { width: MENU_WIDTH }]}>
             {/* Header */}
             <View style={styles.modalHeader}>
@@ -969,6 +940,23 @@ export default function MyTripsScreen() {
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>Create Itinerary</Text>
                   <Text style={styles.optionSubtitle}>Plan your daily activities</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalOption, { backgroundColor: '#F0FDF4' }]}
+                onPress={() => {
+                  closeMenu();
+                  if (menuTrip) navigation.navigate('TripSummary', { tripId: menuTrip.id });
+                }}
+              >
+                <View style={[styles.optionIconContainer, { backgroundColor: '#F0FDF4' }]}> 
+                  <Ionicons name="sparkles-outline" size={24} color="#6366F1" />
+                </View>
+                <View style={styles.optionContent}>
+                  <Text style={styles.optionTitle}>Summarize Trip</Text>
+                  <Text style={styles.optionSubtitle}>Summary of itinerary, packing, journal</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
               </TouchableOpacity>

@@ -36,6 +36,8 @@ import { fetchWeatherData } from '../api/weather';
 import { generatePackingList } from '../services/packingService';
 import { cn } from '../utils/cn';
 import AILoadingScreen from '../components/AILoadingScreen';
+import { scheduleTripReminder, schedulePackingReminder, scheduleWeatherAlert } from '../services/notificationService';
+import mixpanel from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'TripSetup'>;
@@ -171,9 +173,10 @@ export default function TripSetupScreen() {
   
   const addTrip = useTripStore((state) => state.addTrip);
   const updateTrip = useTripStore((state) => state.updateTrip);
-  const getTripById = useTripStore((state) => state.getTripById);
+  // Removed getTripById (not in store)
   const incrementUsage = useUserStore((state) => state.incrementUsage);
   const getEffectiveTier = useUserStore((state) => state.getEffectiveTier);
+  const currentUser = useUserStore((state) => state.user);
   const currentTier = getEffectiveTier();
   
   const [formData, setFormData] = useState({
@@ -199,24 +202,9 @@ export default function TripSetupScreen() {
   
   // Load existing trip data if editing
   useEffect(() => {
-    if (editTripId) {
-      const trip = getTripById(editTripId);
-      if (trip) {
-        setFormData({
-          name: trip.name,
-          destination: trip.destination,
-          startDate: new Date(trip.startDate),
-          endDate: new Date(trip.endDate),
-          travelers: trip.travelers,
-          genderSplit: (trip as any).genderSplit || null,
-          travelGroup: (trip as any).travelGroup || [],
-          tripType: Array.isArray(trip.tripType) ? trip.tripType : [trip.tripType],
-          activities: trip.activities as ActivityType[],
-          additionalInfo: (trip as any).additionalInfo || '',
-        });
-      }
-    }
-  }, [editTripId, getTripById]);
+    // TODO: If you want to support editing, implement a getTripById selector in tripStore
+    // For now, skip loading existing trip data
+  }, [editTripId]);
 
   // Keyboard event listeners
   useEffect(() => {
@@ -238,8 +226,8 @@ export default function TripSetupScreen() {
   // Calculate duration properly - only if both dates are selected
   let duration = 0;
   if (formData.startDate && formData.endDate) {
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
+    const start = safeDate(formData.startDate);
+    const end = safeDate(formData.endDate);
     
     // Reset times to midnight to get clean day calculations
     start.setHours(0, 0, 0, 0);
@@ -260,7 +248,7 @@ export default function TripSetupScreen() {
     }));
   };
 
-  const handleTripTypeToggle = (tripType: string) => {
+  const handleTripTypeToggle = (tripType: 'beach' | 'hiking' | 'business' | 'family' | 'other') => {
     setFormData(prev => ({
       ...prev,
       tripType: prev.tripType.includes(tripType)
@@ -317,6 +305,10 @@ export default function TripSetupScreen() {
   
   const handleSave = async () => {
     if (!validateForm()) return;
+    if (!currentUser?.id) {
+      Alert.alert('Not logged in', 'You must be logged in to create a trip.');
+      return;
+    }
     
     buttonScale.value = withSpring(0.95, undefined, () => {
       buttonScale.value = withSpring(1);
@@ -330,23 +322,32 @@ export default function TripSetupScreen() {
         Alert.alert('Missing Dates', 'Please select both start and end dates');
         return;
       }
-      
       // Fetch weather data
       const weather = await fetchWeatherData(formData.destination);
-      
+      // Schedule weather alert if needed
+      if (weather && weather.description && (weather.description.toLowerCase().includes('rain') || weather.description.toLowerCase().includes('snow'))) {
+        await scheduleWeatherAlert(formData.destination, formData.startDate.toISOString(), weather.description);
+      }
+      // Generate a temporary id for frontend (will be replaced by backend _id)
+      const tempId = `temp_${Date.now()}`;
       const tripData = {
         ...formData,
+        id: tempId,
         startDate: formData.startDate.toISOString(),
         endDate: formData.endDate.toISOString(),
         duration,
         weather,
         completed: false,
-        packingList: editTripId ? getTripById(editTripId)?.packingList || [] : [],
+        packingList: [],
+        user: currentUser?.id, // Pass user id for backend
+        // Ensure tripType is the correct union type array
+        tripType: (formData.tripType as ("leisure" | "business" | "adventure" | "family" | "romantic" | "wellness" | "cultural" | "backpacking" | "roadtrip")[]),
       };
-      
       if (editTripId) {
-        // Update existing trip
-        updateTrip(editTripId, tripData);
+        // Update existing trip (remove id field for update)
+        const { id, ...updateData } = tripData;
+        await updateTrip(editTripId, updateData);
+        console.log('Fetched trips after update:', useTripStore.getState().trips);
       } else {
         // Create new trip
         try {
@@ -355,47 +356,69 @@ export default function TripSetupScreen() {
           console.warn('Usage tracking error:', usageError);
           // Continue with trip creation even if usage tracking fails
         }
-        
         // Generate packing list for new trips using backend AI
         try {
+          // Only allow backend tripType values: 'beach', 'hiking', 'business', 'family', 'other'
+          const allowedTripTypes: ('beach' | 'hiking' | 'business' | 'family' | 'other')[] = ['beach', 'hiking', 'business', 'family', 'other'];
+          let backendTripType: 'beach' | 'hiking' | 'business' | 'family' | 'other' = 'other';
+          if (Array.isArray(tripData.tripType) && tripData.tripType.length > 0) {
+            backendTripType = allowedTripTypes.includes(tripData.tripType[0] as any)
+              ? (tripData.tripType[0] as 'beach' | 'hiking' | 'business' | 'family' | 'other')
+              : 'other';
+          }
           const response = await generatePackingList({
             destination: tripData.destination,
             startDate: tripData.startDate, // Already converted to ISO string
             endDate: tripData.endDate, // Already converted to ISO string
-            tripType: tripData.tripType[0] || 'other',
+            tripType: backendTripType,
             specialRequests: tripData.additionalInfo || undefined
           });
-          
-          // Add the trip with the AI-generated packing list
-          addTrip({ 
+          const addedTrip = await addTrip({ 
             ...tripData, 
-            packingList: response.packingList.items || []
+            tripType: [backendTripType],
+            packingList: response.packingList?.items || [],
           });
-        } catch (error) {
-          console.error('Failed to generate AI packing list:', error);
-          // Fallback to empty packing list if AI generation fails
-          addTrip({ ...tripData, packingList: [] });
+          // Schedule trip and packing reminders
+          await scheduleTripReminder(tripData.name, tripData.destination, tripData.startDate);
+          await schedulePackingReminder(tripData.name, tripData.destination, tripData.startDate);
+          console.log('Trip added:', addedTrip);
+          console.log('Fetched trips after add:', useTripStore.getState().trips);
+        } catch (err) {
+          Alert.alert('Error', 'Failed to create trip.');
         }
       }
-      
+      setIsLoading(false);
       navigation.goBack();
     } catch (error) {
-      console.error('Trip creation error:', error);
-      let errorMessage = 'Failed to save trip. Please try again.';
-      
-      if (error instanceof Error) {
-        errorMessage = `Failed to save trip: ${error.message}`;
-      }
-      
-      Alert.alert('Error', errorMessage);
-    } finally {
       setIsLoading(false);
+      Alert.alert('Error', 'Failed to create or update trip.');
     }
   };
 
   const buttonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
   }));
+
+  // Mapping function for backend to frontend tripType
+  const backendToFrontendTripType = (backendType: 'beach' | 'hiking' | 'business' | 'family' | 'other'): 'leisure' | 'business' | 'adventure' | 'family' | 'romantic' | 'wellness' | 'cultural' | 'backpacking' | 'roadtrip' => {
+    switch (backendType) {
+      case 'beach': return 'leisure';
+      case 'hiking': return 'adventure';
+      case 'business': return 'business';
+      case 'family': return 'family';
+      case 'other': return 'leisure';
+      default: return 'leisure';
+    }
+  };
+
+  // Helper to safely create a Date from Date | null
+  function safeDate(date: Date | null): Date {
+    return date ? new Date(date) : new Date();
+  }
+
+  useEffect(() => {
+    mixpanel.track('TripSetup Screen Viewed');
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -513,7 +536,7 @@ export default function TripSetupScreen() {
                     entering={FadeInDown.delay(100).duration(400)}
                   >
                     <Pressable
-                      onPress={() => handleTripTypeToggle(type.value)}
+                      onPress={() => handleTripTypeToggle(type.value as 'beach' | 'hiking' | 'business' | 'family' | 'other')}
                       className={cn(
                         "rounded-xl px-4 py-3 flex-row items-center border-2 min-w-0",
                         isSelected 
@@ -685,14 +708,14 @@ export default function TripSetupScreen() {
           >
             <View className="flex-row flex-wrap gap-2">
               {activities.map((activity, index) => {
-                const isSelected = formData.activities.includes(activity.value);
+                const isSelected = formData.activities.includes(activity.value as ActivityType);
                 return (
                   <Animated.View
                     key={activity.value}
                     entering={FadeInDown.delay(150 + index * 30).duration(400)}
                   >
                     <Pressable
-                      onPress={() => handleActivityToggle(activity.value)}
+                      onPress={() => handleActivityToggle(activity.value as ActivityType)}
                       className={cn(
                         "rounded-xl px-3 py-2.5 flex-row items-center border-2 min-w-0",
                         isSelected 

@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import AILoadingScreen from '../components/AILoadingScreen';
 import { useIsFocused } from '@react-navigation/native';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,6 +51,7 @@ const CARD_WIDTH = Math.min(width - 48, 340);
 const CARD_HEIGHT = Math.min(height * 0.68, 520);
 
 const DreamDestinationScreen: React.FC = () => {
+  const theme = useTheme();
   const [cardIndex, setCardIndex] = useState(0);
   const [liked, setLiked] = useState<any[]>([]);
   const [disliked, setDisliked] = useState<any[]>([]);
@@ -106,7 +108,7 @@ const DreamDestinationScreen: React.FC = () => {
         const dislikeTitles = disliked.map(card => card.title).join(', ');
         const prompt = `Suggest 5 travel destinations for someone who likes: ${likeTitles || 'none'} and dislikes: ${dislikeTitles || 'none'}.`;
         try {
-          const response = await fetch('https://tripwiser.onrender.com/api/ai/recommend-destinations', {
+          const response = await fetch('http://10.13.185.144:5000/api/ai/recommend-destinations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -180,13 +182,13 @@ const DreamDestinationScreen: React.FC = () => {
                   renderCard={(card: any) => {
                     if (!card) return null;
                     return (
-                      <View style={[styles.card, { borderWidth: 0, borderColor: 'transparent' }, !card?.imageUrl && { backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', padding: 20 }]}> 
+                      <View style={[styles.card, { borderWidth: 0, borderColor: 'transparent' }, !card?.imageUrl && { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}> 
                         <View style={styles.imageContainer}>
                           {card?.imageUrl ? (
                             <Image source={{ uri: card.imageUrl }} style={styles.image} />
                           ) : (
-                            <View style={[styles.image, { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}> 
-                              <Text style={{ color: '#222', textAlign: 'center', fontWeight: 'bold', fontSize: 22, marginBottom: 8 }}>{card.title || card.name}</Text>
+                            <View style={[styles.image, { backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}> 
+                              <Text style={{ color: theme.text, textAlign: 'center', fontWeight: 'bold', fontSize: 22, marginBottom: 8 }}>{card.title || card.name}</Text>
                             </View>
                           )}
                           {/* Gradient overlay for better text readability */}
@@ -260,7 +262,7 @@ const DreamDestinationScreen: React.FC = () => {
                   infinite={false}
                 />
               ) : (
-                <Text style={{ color: '#222', fontSize: 18, textAlign: 'center', marginTop: 40 }}>No recommendations found.</Text>
+                <Text style={{ color: theme.text, fontSize: 18, textAlign: 'center', marginTop: 40 }}>No recommendations found.</Text>
               )
             ) : (
               <Swiper
@@ -270,13 +272,13 @@ const DreamDestinationScreen: React.FC = () => {
                 renderCard={(card: any) => {
                   if (!card) return null;
                   return (
-                    <View style={[styles.card, { borderWidth: 0, borderColor: 'transparent' }, !card?.imageUrl && { backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', padding: 20 }]}> 
+                    <View style={[styles.card, { borderWidth: 0, borderColor: 'transparent' }, !card?.imageUrl && { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}> 
                       <View style={styles.imageContainer}>
                         {card?.imageUrl ? (
                           <Image source={{ uri: card.imageUrl }} style={styles.image} />
                         ) : (
-                          <View style={[styles.image, { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}> 
-                            <Text style={{ color: '#222', textAlign: 'center', fontWeight: 'bold', fontSize: 22, marginBottom: 8 }}>{card.title || card.name}</Text>
+                          <View style={[styles.image, { backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}> 
+                            <Text style={{ color: theme.text, textAlign: 'center', fontWeight: 'bold', fontSize: 22, marginBottom: 8 }}>{card.title || card.name}</Text>
                           </View>
                         )}
                         {/* Gradient overlay for better text readability */}

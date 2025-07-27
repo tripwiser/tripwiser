@@ -2,13 +2,10 @@
 // This file centralizes all API-related configuration
 
 // Environment-based API URL
+
+// Always use the user's local IP for backend API
 const getApiUrl = () => {
-  if (__DEV__) {
-    // Development - you can change this to your local backend if needed
-    return 'https://tripwiser.onrender.com/api';
-  }
-  // Production
-  return 'https://tripwiser.onrender.com/api';
+  return 'http://10.13.185.144:5000/api'; // User's local IP
 };
 
 export const API_CONFIG = {

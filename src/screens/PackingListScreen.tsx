@@ -39,6 +39,8 @@ import { getTemperatureDisplayValue } from '../utils/temperature';
 import { sharePackingList, exportPackingListHTML, openAmazonSearch } from '../utils/shareUtils';
 import UpgradePrompt from '../components/UpgradePrompt';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/ThemeContext';
+import mixpanel from '../services/analytics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'PackingList'>;
@@ -850,7 +852,6 @@ export default function PackingListScreen() {
   const addPackingItem = useTripStore((state) => state.addPackingItem);
   const updatePackingItem = useTripStore((state) => state.updatePackingItem);
   const removePackingItem = useTripStore((state) => state.removePackingItem);
-  const getPackingProgress = useTripStore((state) => state.getPackingProgress);
   
   const canPerformAction = useUserStore((state) => state.canPerformAction);
   const getEffectiveTier = useUserStore((state) => state.getEffectiveTier);
@@ -869,7 +870,9 @@ export default function PackingListScreen() {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>('sharePackingList');
 
-  const progress = getPackingProgress(tripId);
+  useEffect(() => {
+    mixpanel.track('PackingList Screen Viewed');
+  }, []);
 
   // Group items into categories
   const categories = useMemo(() => {
@@ -894,6 +897,12 @@ export default function PackingListScreen() {
       isExpanded: expandedCategories.has(name || `category-${index}`),
     })).filter(category => category.items.length > 0 || searchText === '');
   }, [trip, searchText, expandedCategories, customEmojis]);
+
+  // Calculate overall progress
+  const allItems = categories.flatMap((cat) => cat.items);
+  const totalCount = allItems.length;
+  const packedCount = allItems.filter((item) => item.packed).length;
+  const percentage = totalCount > 0 ? Math.round((packedCount / totalCount) * 100) : 0;
 
   if (!trip) {
     return (
@@ -998,7 +1007,7 @@ export default function PackingListScreen() {
                     fontSize: 18,
                     letterSpacing: 0.2,
                   }}>
-                    {progress.percentage}%
+                    {totalCount > 0 ? `${percentage}%` : 'N/A'}
                   </Text>
                 </LinearGradient>
               </View>
@@ -1048,21 +1057,21 @@ export default function PackingListScreen() {
                         text: 'Share as Text', 
                         onPress: () => {
                           incrementUsage('packingListShares');
-                          sharePackingList(trip, { format: 'text' });
+                          sharePackingList(trip, { format: 'text', customEmojis });
                         }
                       },
                       { 
                         text: 'Export as HTML', 
                         onPress: () => {
                           incrementUsage('packingListShares');
-                          exportPackingListHTML(trip, { format: 'text' });
+                          exportPackingListHTML(trip, { format: 'text', customEmojis });
                         }
                       },
                       { 
                         text: 'Share Link', 
                         onPress: () => {
                           incrementUsage('packingListShares');
-                          sharePackingList(trip, { format: 'link' });
+                          sharePackingList(trip, { format: 'link', customEmojis });
                         }
                       },
                     ]

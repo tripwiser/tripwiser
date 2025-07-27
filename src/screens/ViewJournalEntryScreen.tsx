@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Pressable,
   Image,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -14,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useJournalStore } from '../state/journalStore';
@@ -75,7 +77,7 @@ export default function ViewJournalEntryScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            deleteEntry(tripId, entryId);
+            deleteEntry(entryId);
             navigation.goBack();
           },
         },
@@ -95,12 +97,15 @@ export default function ViewJournalEntryScreen() {
 
   const color = MemoryTypeColors[entry.type];
 
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <StatusBar style="dark" />
       
       {/* Header */}
-      <View className="bg-white border-b border-gray-100 px-6 py-4">
+      <View className="bg-white border-b border-gray-100 px-6" style={{ paddingTop: insets.top, paddingBottom: 16 }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
             <Pressable 
@@ -111,10 +116,11 @@ export default function ViewJournalEntryScreen() {
             </Pressable>
             <View>
               <Text className="text-xl font-bold text-gray-900 capitalize">
-                {entry.title || entry.type}
+                {entry.title || entry.type || 'Untitled'}
               </Text>
               <Text className="text-sm text-gray-600">
                 {(() => {
+                  if (!entry.date) return 'No date';
                   try {
                     // Handle both yyyy-MM-dd and ISO string formats
                     const dateObj = entry.date.includes('T') ? parseISO(entry.date) : new Date(entry.date + 'T00:00:00');
@@ -155,10 +161,10 @@ export default function ViewJournalEntryScreen() {
                 <Ionicons name={iconName} size={20} color={memoryColor} />
               </View>
               <Text className="text-lg font-semibold text-gray-900 capitalize">
-                {entry.type}
+                {entry.type || 'General'}
               </Text>
             </View>
-            {entry.mood && (
+            {entry.mood && MoodEmojis[entry.mood] && (
               <View className="flex-row items-center">
                 <Text className="text-2xl mr-2">{MoodEmojis[entry.mood]}</Text>
                 <Text className="text-gray-600 capitalize">{entry.mood}</Text>
@@ -169,40 +175,55 @@ export default function ViewJournalEntryScreen() {
           {/* Content */}
           <View className="bg-white rounded-2xl p-6 mb-6">
             <Text className="text-gray-900 text-base leading-6">
-              {entry.content}
+              {entry.content || 'No content available.'}
             </Text>
           </View>
 
           {/* Photos */}
-          {entry.photos.length > 0 && (
+          {(entry.photos?.length || 0) > 0 && (
             <View className="mb-6">
               <Text className="text-lg font-semibold text-gray-900 mb-3">Photos</Text>
-              <View className="space-y-4">
-                {entry.photos.map((photo) => (
-                  <View key={photo.id} className="bg-white rounded-2xl overflow-hidden">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {(entry.photos || []).map((photo, idx) => (
+                  <Pressable
+                    key={photo.id || `photo-${idx}`}
+                    onPress={() => setSelectedPhoto(photo.uri)}
+                    className="bg-white rounded-2xl overflow-hidden"
+                    style={{
+                      width: 120,
+                      height: 120,
+                      marginRight: idx !== (entry.photos?.length || 0) - 1 ? 16 : 0
+                    }}
+                  >
                     <Image
                       source={{ uri: photo.uri }}
-                      className="w-full h-64"
-                      style={{ resizeMode: 'cover' }}
+                      style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
                     />
-                    {photo.caption && (
-                      <View className="p-4">
-                        <Text className="text-gray-700">{photo.caption}</Text>
-                      </View>
-                    )}
-                  </View>
+                  </Pressable>
                 ))}
-              </View>
+              </ScrollView>
             </View>
           )}
 
+          {/* Fullscreen Photo Modal */}
+          {selectedPhoto && (
+            <Modal visible={true} transparent={true} onRequestClose={() => setSelectedPhoto(null)}>
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+                <Pressable style={{ position: 'absolute', top: 40, right: 20, zIndex: 2 }} onPress={() => setSelectedPhoto(null)}>
+                  <Ionicons name="close" size={36} color="#fff" />
+                </Pressable>
+                <Image source={{ uri: selectedPhoto }} style={{ width: '90%', height: '70%', resizeMode: 'contain', borderRadius: 16 }} />
+              </View>
+            </Modal>
+          )}
+
           {/* Tags */}
-          {entry.tags.length > 0 && (
+          {(entry.tags?.length || 0) > 0 && (
             <View className="mb-6">
               <Text className="text-lg font-semibold text-gray-900 mb-3">Tags</Text>
               <View className="flex-row flex-wrap">
-                {entry.tags.map((tag, index) => (
-                  <View key={index} className="bg-indigo-100 rounded-full px-3 py-1 mr-2 mb-2">
+                {(entry.tags || []).map((tag, index) => (
+                  <View key={`${tag}-${index}`} className="bg-indigo-100 rounded-full px-3 py-1 mr-2 mb-2">
                     <Text className="text-sm text-indigo-700">#{tag}</Text>
                   </View>
                 ))}

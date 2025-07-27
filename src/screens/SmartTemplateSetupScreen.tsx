@@ -194,7 +194,7 @@ export default function SmartTemplateSetupScreen() {
       
       {/* Header */}
       <SafeAreaView className="bg-white border-b border-gray-100">
-        <View className="px-4 py-3 flex-row items-center">
+        <View className="px-4 flex-row items-center" style={{ paddingTop: insets.top, paddingBottom: 12 }}>
           <Pressable onPress={() => navigation.goBack()} className="mr-4">
             <Ionicons name="arrow-back" size={24} color="#374151" />
           </Pressable>

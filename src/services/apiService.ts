@@ -80,4 +80,18 @@ export async function postSwipeResult(destinationId: string, result: 'like' | 'd
   });
   if (!res.ok) throw new Error('Failed to send swipe result');
   return res.json();
+}
+
+export async function fetchUnsplashImage(destination: string): Promise<string> {
+  try {
+    const res = await apiService.post(buildApiUrl('/ai/unsplash-image'), { destination });
+    if (res.data && res.data.success && res.data.imageUrl) {
+      return res.data.imageUrl;
+    }
+    throw new Error('No image returned');
+  } catch (err) {
+    console.error('Failed to fetch Unsplash image:', err);
+    // Fallback image
+    return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80';
+  }
 } 

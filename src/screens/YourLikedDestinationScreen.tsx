@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(width - 48, 340);
@@ -14,6 +15,7 @@ const CARD_HEIGHT = Math.min(height * 0.68, 520);
 const YourLikedDestinationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
+  const theme = useTheme();
   // Filter out any undefined or empty cards
   const recommendations = (route.params?.recommendations || []).filter((card: any) => card && Object.keys(card).length > 0);
   const [recommendationIndex, setRecommendationIndex] = useState(0);

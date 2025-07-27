@@ -27,6 +27,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUserStore } from '../state/userStore';
 import { cn } from '../utils/cn';
 import { authService, AuthUser } from '../services/authService';
+import { useTheme } from '../theme/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -40,6 +41,7 @@ export default function LoginScreen() {
   const buttonScale = useSharedValue(1);
   const setUser = useUserStore((state) => state.setUser);
   const completeOnboarding = useUserStore((state) => state.completeOnboarding);
+  const theme = useTheme();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -139,8 +141,8 @@ export default function LoginScreen() {
   }));
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <StatusBar style="dark" />
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <StatusBar style={theme.isDark ? "light" : "dark"} />
       
       {/* Background Gradient */}
       <LinearGradient
@@ -190,7 +192,7 @@ export default function LoginScreen() {
               <Text style={{
                 fontSize: 32,
                 fontWeight: '800',
-                color: '#1A202C',
+                color: theme.text,
                 marginBottom: 8,
                 textAlign: 'center',
                 letterSpacing: -1,
@@ -199,7 +201,7 @@ export default function LoginScreen() {
               </Text>
               <Text style={{
                 fontSize: 18,
-                color: '#4A5568',
+                color: theme.muted,
                 textAlign: 'center',
                 opacity: 0.85,
                 lineHeight: 24,
@@ -214,27 +216,27 @@ export default function LoginScreen() {
                 {/* Email Input */}
                 <View style={{ marginBottom: 16 }}>
                   <Text style={{
-                    color: '#4A5568',
+                    color: theme.muted,
                     fontWeight: '600',
                     marginBottom: 8,
                     fontSize: 16,
                   }}>Email</Text>
                   <View style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.card,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: theme.border,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    shadowColor: '#4F46E5',
+                    shadowColor: theme.primary,
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.05,
                     shadowRadius: 4,
                     elevation: 2,
                   }}>
-                    <Ionicons name="mail-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="mail-outline" size={20} color={theme.primary} />
                     <TextInput
                       value={email}
                       onChangeText={setEmail}
@@ -245,10 +247,10 @@ export default function LoginScreen() {
                       style={{
                         flex: 1,
                         marginLeft: 12,
-                        color: '#1A202C',
+                        color: theme.text,
                         fontSize: 16,
                       }}
-                      placeholderTextColor="#A0AEC0"
+                      placeholderTextColor={theme.muted}
                     />
                   </View>
                 </View>
@@ -256,27 +258,27 @@ export default function LoginScreen() {
                 {/* Password Input */}
                 <View style={{ marginBottom: 16 }}>
                   <Text style={{
-                    color: '#4A5568',
+                    color: theme.muted,
                     fontWeight: '600',
                     marginBottom: 8,
                     fontSize: 16,
                   }}>Password</Text>
                   <View style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.card,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: theme.border,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    shadowColor: '#4F46E5',
+                    shadowColor: theme.primary,
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.05,
                     shadowRadius: 4,
                     elevation: 2,
                   }}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="lock-closed-outline" size={20} color={theme.primary} />
                     <TextInput
                       value={password}
                       onChangeText={setPassword}
@@ -285,16 +287,16 @@ export default function LoginScreen() {
                       style={{
                         flex: 1,
                         marginLeft: 12,
-                        color: '#1A202C',
+                        color: theme.text,
                         fontSize: 16,
                       }}
-                      placeholderTextColor="#A0AEC0"
+                      placeholderTextColor={theme.muted}
                     />
                     <Pressable onPress={() => setShowPassword(!showPassword)}>
                       <Ionicons 
                         name={showPassword ? "eye-off-outline" : "eye-outline"} 
                         size={20} 
-                        color="#4F46E5" 
+                        color={theme.primary} 
                       />
                     </Pressable>
                   </View>
@@ -303,7 +305,7 @@ export default function LoginScreen() {
                 {/* Forgot Password */}
                 <Pressable onPress={handleForgotPassword} style={{ marginBottom: 20 }}>
                   <Text style={{
-                    color: '#4F46E5',
+                    color: theme.primary,
                     fontWeight: '600',
                     textAlign: 'center',
                     fontSize: 16,
@@ -320,7 +322,7 @@ export default function LoginScreen() {
                     style={{
                       borderRadius: 16,
                       overflow: 'hidden',
-                      shadowColor: '#4F46E5',
+                      shadowColor: theme.primary,
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.2,
                       shadowRadius: 8,
@@ -357,11 +359,11 @@ export default function LoginScreen() {
                   <View style={{ 
                     flex: 1, 
                     height: 1, 
-                    backgroundColor: '#E2E8F0' 
+                    backgroundColor: theme.border 
                   }} />
                   <Text style={{ 
                     marginHorizontal: 16, 
-                    color: '#A0AEC0', 
+                    color: theme.muted, 
                     fontWeight: '500',
                     fontSize: 14 
                   }}>
@@ -370,7 +372,7 @@ export default function LoginScreen() {
                   <View style={{ 
                     flex: 1, 
                     height: 1, 
-                    backgroundColor: '#E2E8F0' 
+                    backgroundColor: theme.border 
                   }} />
                 </View>
 
@@ -381,10 +383,10 @@ export default function LoginScreen() {
                     onPress={handleGoogleSignIn}
                     disabled={isLoading}
                     style={{
-                      backgroundColor: '#FFFFFF',
+                      backgroundColor: theme.card,
                       borderRadius: 16,
                       borderWidth: 1,
-                      borderColor: '#E2E8F0',
+                      borderColor: theme.border,
                       paddingVertical: 16,
                       paddingHorizontal: 16,
                       flexDirection: 'row',
@@ -401,7 +403,7 @@ export default function LoginScreen() {
                     <Ionicons name="logo-google" size={24} color="#4285F4" />
                     <Text style={{
                       marginLeft: 12,
-                      color: '#1A202C',
+                      color: theme.text,
                       fontWeight: '600',
                       fontSize: 16,
                     }}>
@@ -442,9 +444,9 @@ export default function LoginScreen() {
 
                 {/* Sign Up Link */}
                 <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: '#4A5568', fontSize: 16 }}>Don't have an account? </Text>
+                  <Text style={{ color: theme.muted, fontSize: 16 }}>Don't have an account? </Text>
                   <Pressable onPress={handleSignUp}>
-                    <Text style={{ color: '#4F46E5', fontWeight: '600', fontSize: 16 }}>Sign Up</Text>
+                    <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 16 }}>Sign Up</Text>
                   </Pressable>
                 </View>
               </Animated.View>

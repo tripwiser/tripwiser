@@ -382,6 +382,89 @@ export class TravelTipsService {
       return 'Stay safe and enjoy your travels!';
     }
   }
+
+  /**
+   * Submit a user travel tip for AI moderation and posting
+   * @param user - User ID
+   * @param trip - Trip ID
+   * @param content - Tip content
+   * @returns Promise with backend response (success, tip, or error)
+   */
+  async submitUserTip(user: string, trip: string | undefined, content: string) {
+    try {
+      // Always use demo user if user is not provided
+      const demoUserId = '64b7f8c2e1a2b3c4d5e6f7a8';
+      const payload: any = { user: user || demoUserId, content };
+      if (trip) payload.trip = trip;
+      const response = await apiService.post('/travel-tips/submit', payload);
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to submit tip', error: error.message };
+    }
+  }
+
+  /**
+   * Add a comment to a tip
+   */
+  async addComment(tipId: string, user: string | undefined, text: string) {
+    try {
+      const response = await apiService.post(`/travel-tips/${tipId}/comment`, { user, text });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to add comment', error: error.message };
+    }
+  }
+
+  /**
+   * Get all comments for a tip
+   */
+  async getComments(tipId: string) {
+    try {
+      const response = await apiService.get(`/travel-tips/${tipId}/comments`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to fetch comments', error: error.message };
+    }
+  }
+
+  /**
+   * Rate a tip
+   */
+  async rateTip(tipId: string, user: string | undefined, value: number) {
+    try {
+      const response = await apiService.post(`/travel-tips/${tipId}/rate`, { user, value });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to rate tip', error: error.message };
+    }
+  }
+
+  /**
+   * Report a tip
+   */
+  async reportTip(tipId: string, user: string | undefined, reason: string) {
+    try {
+      const response = await apiService.post(`/travel-tips/${tipId}/report`, { user, reason });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Failed to report tip', error: error.message };
+    }
+  }
 }
 
 export const travelTipsService = TravelTipsService.getInstance();

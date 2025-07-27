@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vibecode.tripkit"
@@ -16,8 +16,20 @@
       "package": "com.vibecode.tripkit"
     },
     "plugins": [
-      "expo-video",
-      "expo-web-browser"
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "YOUR_MAPBOX_ACCESS_TOKEN"
+        }
+      ],
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to show nearby places on the map."
+        }
+      ]
     ],
     "extra": {
       "eas": {

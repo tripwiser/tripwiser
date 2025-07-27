@@ -1,6 +1,27 @@
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
+    presets: [
+      ['babel-preset-expo', { 
+        jsxImportSource: 'nativewind',
+        unstable_transformProfile: 'hermes-stable'
+      }], 
+      'nativewind/babel'
+    ],
+    plugins: [
+      [
+        "module:react-native-dotenv",
+        {
+          "moduleName": "@env",
+          "path": ".env",
+          "blocklist": null,
+          "allowlist": null,
+          "safe": false,
+          "allowUndefined": true,
+          "verbose": false
+        }
+      ],
+      'react-native-reanimated/plugin'
+    ]
   };
 };

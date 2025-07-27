@@ -29,6 +29,7 @@ import { cn } from '../utils/cn';
 import { generatePackingList } from '../services/packingService';
 import AILoadingScreen from '../components/AILoadingScreen';
 import popularDestinations from '../data/popularDestinations.json';
+import { scheduleTripReminder, schedulePackingReminder, scheduleWeatherAlert } from '../services/notificationService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProp_ = RouteProp<RootStackParamList, 'QuickTripSetup'>;
@@ -156,6 +157,13 @@ export default function QuickTripSetupScreen() {
 
       // Generate the packing list via the backend
       const newPackingList = await generatePackingList(tripDetails);
+      // Schedule trip and packing reminders
+      await scheduleTripReminder(formData.name, formData.destination, formData.startDate.toISOString());
+      await schedulePackingReminder(formData.name, formData.destination, formData.startDate.toISOString());
+      // If weather info is available and has alert
+      if (newPackingList.weather && newPackingList.weather.description && (newPackingList.weather.description.toLowerCase().includes('rain') || newPackingList.weather.description.toLowerCase().includes('snow'))) {
+        await scheduleWeatherAlert(formData.destination, formData.startDate.toISOString(), newPackingList.weather.description);
+      }
 
       if (currentTier === 'free') {
         incrementUsage('tripsCreated');

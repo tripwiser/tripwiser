@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useUserStore } from '../state/userStore';
 import { cn } from '../utils/cn';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -108,6 +109,7 @@ const pricingPlans = [
 
 export default function PremiumScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const theme = useTheme();
   
   // Redirect to new subscription screen
   React.useEffect(() => {
@@ -163,6 +165,9 @@ function LegacyPremiumScreen() {
     transform: [{ scale: buttonScale.value }],
   }));
   
+  const isPremium = currentTier === 'premium';
+  const freeTripCount = 3; // Placeholder for actual free trip count
+
   if (isPremium) {
     return (
       <View className="flex-1">

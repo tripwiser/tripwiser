@@ -7,6 +7,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/ThemeContext';
+import mixpanel from '../services/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -102,9 +105,13 @@ const HomeScreen = () => {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [selectedDestination, setSelectedDestination] = React.useState<any>(null);
   const [hasError, setHasError] = React.useState(false);
+  const [likedDestinations, setLikedDestinations] = React.useState<any[]>([]);
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   useFocusEffect(
     React.useCallback(() => {
+      mixpanel.track('Home Screen Viewed');
       try {
         AsyncStorage.getItem('top5Destinations').then((data) => {
           console.log('Raw data from AsyncStorage:', data);
@@ -172,15 +179,23 @@ const HomeScreen = () => {
     return () => scrollX.removeListener(id);
   }, [scrollX]);
 
+  // Handler to like a destination
+  const handleLikeDestination = (destination: any) => {
+    setLikedDestinations((prev) => {
+      if (prev.some((d) => d.id === destination.id)) return prev;
+      return [...prev, destination];
+    });
+  };
+
   if (hasError) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F7F7F7' }} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'left', 'right']}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20, color: theme.text }}>
             Something went wrong. Please restart the app.
           </Text>
           <TouchableOpacity 
-            style={{ backgroundColor: '#4F46E5', padding: 15, borderRadius: 10 }}
+            style={{ backgroundColor: theme.primary, padding: 15, borderRadius: 10 }}
             onPress={() => setHasError(false)}
           >
             <Text style={{ color: 'white', fontWeight: '600' }}>Try Again</Text>
@@ -191,18 +206,18 @@ const HomeScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F7F7F7' }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
         {/* Large Header */}
-        <View style={{ paddingHorizontal: 18, paddingTop: 32, paddingBottom: 18 }}>
-          <Text style={{ fontSize: 28, fontWeight: '700', color: '#1f2937', marginBottom: 8 }}>Discover</Text>
+        <View style={{ paddingHorizontal: 18, paddingTop: insets.top, paddingBottom: 18 }}>
+          <Text style={{ fontSize: 28, fontWeight: '700', color: theme.text }}>Discover</Text>
         </View>
 
         {/* Your Dream Destinations Section */}
         {topDestinations.length > 0 && (
           <View style={{ marginBottom: 18 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 18, marginBottom: 8 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Your Dream Destinations</Text>
+              <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.text }}>Your Dream Destinations</Text>
             </View>
             <ScrollView
               horizontal
@@ -217,7 +232,7 @@ const HomeScreen = () => {
                     borderRadius: 26,
                     marginRight: 20,
                     overflow: 'hidden',
-                    backgroundColor: '#fff',
+                    backgroundColor: theme.card,
                     borderWidth: 0,
                     borderColor: 'transparent',
                   }}
@@ -245,7 +260,7 @@ const HomeScreen = () => {
                         borderBottomRightRadius: 26,
                         alignItems: 'center',
                       }}>
-                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }} numberOfLines={1}>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }} numberOfLines={1}>
                           {item?.name || 'Unknown Destination'}
                         </Text>
                       </View>
@@ -262,7 +277,7 @@ const HomeScreen = () => {
               onRequestClose={() => setModalVisible(false)}
             >
               <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 24, padding: 20, alignItems: 'center' }}>
+                <View style={{ width: '85%', backgroundColor: theme.card, borderRadius: 24, padding: 20, alignItems: 'center' }}>
                   {selectedDestination?.imageUrl && (
                     <Image
                       source={{ uri: selectedDestination.imageUrl }}
@@ -270,15 +285,15 @@ const HomeScreen = () => {
                       resizeMode="cover"
                     />
                   )}
-                  <Text style={{ fontWeight: 'bold', fontSize: 22, marginBottom: 8 }}>{selectedDestination?.name}</Text>
-                  {selectedDestination?.description && <Text style={{ fontSize: 16, marginBottom: 8 }}>{selectedDestination.description}</Text>}
-                  {selectedDestination?.bestTimeToVisit && <Text style={{ fontSize: 15, marginBottom: 4 }}>Best Time: {selectedDestination.bestTimeToVisit}</Text>}
-                  {selectedDestination?.budgetRange && <Text style={{ fontSize: 15, marginBottom: 4 }}>Budget: {selectedDestination.budgetRange}</Text>}
+                  <Text style={{ fontWeight: 'bold', fontSize: 22, marginBottom: 8, color: theme.text }}>{selectedDestination?.name}</Text>
+                  {selectedDestination?.description && <Text style={{ fontSize: 16, marginBottom: 8, color: theme.text }}>{selectedDestination.description}</Text>}
+                  {selectedDestination?.bestTimeToVisit && <Text style={{ fontSize: 15, marginBottom: 4, color: theme.text }}>Best Time: {selectedDestination.bestTimeToVisit}</Text>}
+                  {selectedDestination?.budgetRange && <Text style={{ fontSize: 15, marginBottom: 4, color: theme.text }}>Budget: {selectedDestination.budgetRange}</Text>}
                   <Pressable
-                    style={{ marginTop: 18, backgroundColor: '#4F46E5', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 28 }}
+                    style={{ marginTop: 18, backgroundColor: theme.primary, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 28 }}
                     onPress={() => setModalVisible(false)}
                   >
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
                   </Pressable>
                 </View>
               </View>
@@ -288,7 +303,7 @@ const HomeScreen = () => {
         {/* Popular Countries (Auto-scroll) */}
         <View style={{ marginBottom: 18 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 18, marginBottom: 8 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Popular Countries</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.text }}>Popular Countries</Text>
           </View>
           <Animated.ScrollView
             ref={scrollViewRef}
@@ -304,13 +319,13 @@ const HomeScreen = () => {
                 borderRadius: 28,
                 marginRight: CARD_SPACING,
                 overflow: 'hidden',
-                backgroundColor: '#eee',
+                backgroundColor: theme.card,
                 alignItems: 'center',
                 justifyContent: 'flex-end',
               }}>
                 <Image source={{ uri: item.imageUrl }} style={{ width: CARD_WIDTH, height: 220, borderRadius: 28, position: 'absolute', top: 0, left: 0 }} />
                 <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.25)', borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
-                  <Text style={{ fontSize: 18, color: '#fff', fontWeight: 'bold' }}>{item.name}</Text>
+                  <Text style={{ fontSize: 18, color: 'white', fontWeight: 'bold' }}>{item.name}</Text>
                 </View>
               </View>
             ))}
@@ -320,7 +335,7 @@ const HomeScreen = () => {
         {/* Popular Destinations (Manual scroll, fixed height) */}
         <View style={{ marginBottom: 18 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 18, marginBottom: 8 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Popular Destinations</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.text }}>Popular Destinations</Text>
           </View>
           <ScrollView
             horizontal
@@ -333,15 +348,18 @@ const HomeScreen = () => {
                 borderRadius: 22,
                 marginRight: 16,
                 overflow: 'hidden',
-                backgroundColor: '#fff',
+                backgroundColor: theme.card,
               }}>
                 <View style={{ position: 'relative' }}>
                   <Image source={{ uri: item.imageUrl }} style={{ width: 180, height: 120, borderTopLeftRadius: 22, borderTopRightRadius: 22 }} />
-                  <TouchableOpacity style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 18, width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="heart-outline" size={18} color="#4F46E5" />
+                  <TouchableOpacity
+                    style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 18, width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
+                    onPress={() => handleLikeDestination(item)}
+                  >
+                    <Ionicons name={likedDestinations.some((d) => d.id === item.id) ? 'heart' : 'heart-outline'} size={18} color={theme.primary} />
                   </TouchableOpacity>
                   <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, backgroundColor: 'rgba(0,0,0,0.25)', borderBottomLeftRadius: 22, borderBottomRightRadius: 22 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#fff', textAlign: 'left' }} numberOfLines={1}>{item.name}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 15, color: 'white', textAlign: 'left' }} numberOfLines={1}>{item.name}</Text>
                   </View>
                 </View>
               </View>
@@ -349,16 +367,50 @@ const HomeScreen = () => {
           </ScrollView>
         </View>
 
+        {/* Liked Destinations Section */}
+        {likedDestinations.length > 0 && (
+          <View style={{ marginBottom: 18 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 18, marginBottom: 8 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.text }}>Liked Destinations</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingLeft: 18, paddingRight: 12, alignItems: 'center' }}
+            >
+              {likedDestinations.map((item: any, idx: number) => (
+                <View key={item.id + '-' + idx} style={{
+                  width: 180,
+                  borderRadius: 22,
+                  marginRight: 16,
+                  overflow: 'hidden',
+                  backgroundColor: theme.card,
+                }}>
+                  <View style={{ position: 'relative' }}>
+                    <Image source={{ uri: item.imageUrl }} style={{ width: 180, height: 120, borderTopLeftRadius: 22, borderTopRightRadius: 22 }} />
+                    <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 18, width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name={'heart'} size={18} color={theme.primary} />
+                    </View>
+                    <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, backgroundColor: 'rgba(0,0,0,0.25)', borderBottomLeftRadius: 22, borderBottomRightRadius: 22 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 15, color: 'white', textAlign: 'left' }} numberOfLines={1}>{item.name}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Let's Find Your Next Destination Section */}
         <View style={{ marginHorizontal: 18, marginTop: 24, marginBottom: 32 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 12 }}>Let’s Find Your Next Destination</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 12, color: theme.text }}>Let’s Find Your Next Destination</Text>
           <TouchableOpacity
             style={{
-              backgroundColor: '#4F46E5',
+              backgroundColor: theme.primary,
               borderRadius: 16,
               paddingVertical: 16,
               alignItems: 'center',
-              shadowColor: '#4F46E5',
+              shadowColor: theme.primary,
               shadowOpacity: 0.15,
               shadowRadius: 8,
               elevation: 2,
@@ -368,17 +420,17 @@ const HomeScreen = () => {
           >
             <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{topDestinations.length > 0 ? 'Change' : 'Start'}</Text>
           </TouchableOpacity>
-          {/* Debug button to clear AsyncStorage */}
           <TouchableOpacity
             style={{
-              backgroundColor: '#EF4444',
+              backgroundColor: theme.danger || '#EF4444',
               borderRadius: 16,
-              paddingVertical: 12,
+              paddingVertical: 14,
               alignItems: 'center',
-              shadowColor: '#EF4444',
-              shadowOpacity: 0.15,
-              shadowRadius: 8,
-              elevation: 2,
+              shadowColor: theme.danger || '#EF4444',
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 1,
+              marginBottom: 8,
             }}
             onPress={async () => {
               await AsyncStorage.removeItem('top5Destinations');
@@ -386,7 +438,7 @@ const HomeScreen = () => {
               console.log('Cleared top5Destinations from AsyncStorage');
             }}
           >
-            <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Clear Saved Destinations</Text>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Clear Saved Destinations</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

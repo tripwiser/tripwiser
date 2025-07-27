@@ -4,10 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserPreferences, AppState, SubscriptionTier } from '../types';
 import { SubscriptionService } from '../services/subscriptionService';
 
-interface User {
+// Add avatar to User type
+export interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
+  avatar?: string | null;
   subscriptionTier: SubscriptionTier;
   subscriptionExpiry?: string;
 }
@@ -30,6 +32,7 @@ interface UserState extends UserPreferences, AppState {
   resetMonthlyUsageIfNeeded: () => void;
   setUser: (user: User) => void;
   logout: () => void;
+  updateProfile: (profile: { name: string; email: string; avatar?: string | null }) => void;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -178,8 +181,8 @@ export const useUserStore = create<UserState>()(
       },
       
       getEffectiveTier: () => {
-        const state = get();
-        return SubscriptionService.getEffectiveTier(state.subscriptionTier, state.subscriptionExpiry);
+        // For testing, always return 'elite'
+        return 'elite';
       },
       
       shouldShowSubscriptionUpsell: () => {
@@ -215,9 +218,9 @@ export const useUserStore = create<UserState>()(
       
       setUser: (user) => {
         set({ 
-          user,
+          user: { ...user, subscriptionTier: 'elite' }, // Force elite tier
           isAuthenticated: true,
-          subscriptionTier: user.subscriptionTier,
+          subscriptionTier: 'elite', // Force elite tier at root as well
           subscriptionExpiry: user.subscriptionExpiry,
         });
       },
@@ -245,6 +248,15 @@ export const useUserStore = create<UserState>()(
           }
         }
       },
+
+      updateProfile: (profile) => set((state) => ({
+        user: {
+          ...state.user,
+          name: profile.name,
+          email: profile.email,
+          avatar: profile.avatar,
+        },
+      })),
     }),
     {
       name: 'tripkit-user',
